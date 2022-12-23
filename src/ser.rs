@@ -1,30 +1,20 @@
-mod ser;
+use crate::Error;
+use serde::ser::{Impossible, Serialize, Serializer};
 
-use serde::ser::{Impossible, Serialize};
-use std::fmt::{self, Display};
-
-#[derive(Debug)]
-pub struct Error {}
-
-pub fn to_string<T>(value: &T) -> Result<String, Error>
-where
-    T: ?Sized + Serialize,
-{
-    value.serialize(Serializer)
+pub(crate) struct WriteStarlark {
+    output: String,
 }
 
-pub struct Serializer;
-
-impl serde::Serializer for Serializer {
-    type Ok = String;
+impl Serializer for &mut WriteStarlark {
+    type Ok = ();
     type Error = Error;
-    type SerializeSeq = Impossible<String, Error>;
-    type SerializeTuple = Impossible<String, Error>;
-    type SerializeTupleStruct = Impossible<String, Error>;
-    type SerializeTupleVariant = Impossible<String, Error>;
-    type SerializeMap = Impossible<String, Error>;
-    type SerializeStruct = Impossible<String, Error>;
-    type SerializeStructVariant = Impossible<String, Error>;
+    type SerializeSeq = Impossible<(), Error>;
+    type SerializeTuple = Impossible<(), Error>;
+    type SerializeTupleStruct = Impossible<(), Error>;
+    type SerializeTupleVariant = Impossible<(), Error>;
+    type SerializeMap = Impossible<(), Error>;
+    type SerializeStruct = Impossible<(), Error>;
+    type SerializeStructVariant = Impossible<(), Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         unimplemented!()
@@ -190,17 +180,3 @@ impl serde::Serializer for Serializer {
         unimplemented!()
     }
 }
-
-impl Display for Error {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        unimplemented!()
-    }
-}
-
-impl serde::ser::Error for Error {
-    fn custom<T: Display>(message: T) -> Self {
-        unimplemented!()
-    }
-}
-
-impl serde::ser::StdError for Error {}
