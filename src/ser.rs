@@ -1,16 +1,34 @@
 use crate::error;
 use crate::Error;
-use serde::ser::{Impossible, Serialize, Serializer};
+use serde::ser::{Impossible, Serialize, SerializeSeq, Serializer};
 use std::fmt::Write;
+use std::iter;
 
 pub(crate) struct WriteStarlark {
     output: String,
+    indent: usize,
 }
 
-impl Serializer for &mut WriteStarlark {
+impl WriteStarlark {
+    fn newline(&mut self) {
+        let indent = iter::repeat(' ').take(self.indent);
+        self.output.extend(iter::once('\n').chain(indent));
+    }
+
+    fn indent(&mut self) {
+        self.indent += 4;
+    }
+
+    fn unindent(&mut self) {
+        self.indent -= 4;
+        self.newline();
+    }
+}
+
+impl<'a> Serializer for &'a mut WriteStarlark {
     type Ok = ();
     type Error = Error;
-    type SerializeSeq = Impossible<(), Error>;
+    type SerializeSeq = WriteSeq<'a>;
     type SerializeTuple = Impossible<(), Error>;
     type SerializeTupleStruct = Impossible<(), Error>;
     type SerializeTupleVariant = Impossible<(), Error>;
@@ -153,7 +171,15 @@ impl Serializer for &mut WriteStarlark {
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        unimplemented!()
+        let newlines = len.map_or(true, |len| len > 1);
+        self.output.push('[');
+        if newlines {
+            self.indent();
+        }
+        Ok(WriteSeq {
+            serializer: self,
+            newlines,
+        })
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
@@ -198,5 +224,37 @@ impl Serializer for &mut WriteStarlark {
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         Err(error::unsupported_enum(name, variant))
+    }
+}
+
+pub(crate) struct WriteSeq<'a> {
+    serializer: &'a mut WriteStarlark,
+    newlines: bool,
+}
+
+impl SerializeSeq for WriteSeq<'_> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        if self.newlines {
+            self.serializer.newline();
+        }
+        value.serialize(&mut *self.serializer)?;
+        if self.newlines {
+            self.serializer.output.push(',');
+        }
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        if self.newlines {
+            self.serializer.unindent();
+        }
+        self.serializer.output.push(']');
+        Ok(())
     }
 }
