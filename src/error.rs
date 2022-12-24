@@ -12,6 +12,10 @@ pub(crate) enum ErrorKind {
     UnsupportedF32(f32),
     UnsupportedF64(f64),
     UnsupportedChar(char),
+    UnsupportedBytes,
+    UnsupportedUnitStruct(&'static str),
+    UnsupportedTuple,
+    UnsupportedEnum(&'static str, &'static str),
 }
 
 impl Display for Error {
@@ -31,6 +35,23 @@ impl Display for Error {
                 "serialization of char is not supported: '{}'",
                 v.escape_debug(),
             ),
+            UnsupportedBytes => formatter
+                .write_str("serialization of Starlark byte string literals is not supported yet"),
+            UnsupportedUnitStruct(name) => {
+                write!(
+                    formatter,
+                    "serialization of unit struct is not supported: {}",
+                    name,
+                )
+            }
+            UnsupportedTuple => formatter.write_str("serialization of tuples is not supported"),
+            UnsupportedEnum(name, variant) => {
+                write!(
+                    formatter,
+                    "serialization of enum variant is not supported: {}::{}",
+                    name, variant,
+                )
+            }
         }
     }
 }
@@ -103,4 +124,20 @@ pub(crate) fn unsupported_f64(v: f64) -> Error {
 
 pub(crate) fn unsupported_char(v: char) -> Error {
     ErrorKind::UnsupportedChar(v).into()
+}
+
+pub(crate) fn unsupported_bytes() -> Error {
+    ErrorKind::UnsupportedBytes.into()
+}
+
+pub(crate) fn unsupported_unit_struct(name: &'static str) -> Error {
+    ErrorKind::UnsupportedUnitStruct(name).into()
+}
+
+pub(crate) fn unsupported_tuple() -> Error {
+    ErrorKind::UnsupportedTuple.into()
+}
+
+pub(crate) fn unsupported_enum(name: &'static str, variant: &'static str) -> Error {
+    ErrorKind::UnsupportedEnum(name, variant).into()
 }
