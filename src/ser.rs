@@ -1,15 +1,24 @@
 use crate::error;
 use crate::Error;
-use serde::ser::{Impossible, Serialize, SerializeSeq, Serializer};
+use serde::ser::{Impossible, Serialize, SerializeSeq};
 use std::fmt::Write;
 use std::iter;
 
-pub(crate) struct WriteStarlark {
+pub struct WriteStarlark {
     output: String,
     indent: usize,
 }
 
 impl WriteStarlark {
+    pub(crate) fn new() -> Serializer<Self> {
+        Serializer {
+            write: WriteStarlark {
+                output: String::new(),
+                indent: 0,
+            },
+        }
+    }
+
     fn newline(&mut self) {
         let indent = iter::repeat(' ').take(self.indent);
         self.output.extend(iter::once('\n').chain(indent));
@@ -25,20 +34,52 @@ impl WriteStarlark {
     }
 }
 
-impl<'a> Serializer for &'a mut WriteStarlark {
-    type Ok = ();
-    type Error = Error;
-    type SerializeSeq = WriteSeq<'a>;
-    type SerializeTuple = Impossible<(), Error>;
-    type SerializeTupleStruct = Impossible<(), Error>;
-    type SerializeTupleVariant = Impossible<(), Error>;
-    type SerializeMap = Impossible<(), Error>;
-    type SerializeStruct = Impossible<(), Error>;
-    type SerializeStructVariant = Impossible<(), Error>;
+pub trait MutableWriteStarlark {
+    type Ok;
+    fn mutable(&mut self) -> &mut WriteStarlark;
+    fn output(self) -> Self::Ok;
+}
 
-    fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        self.output.push_str(if v { "True" } else { "False" });
-        Ok(())
+impl MutableWriteStarlark for WriteStarlark {
+    type Ok = String;
+    fn mutable(&mut self) -> &mut WriteStarlark {
+        self
+    }
+    fn output(self) -> Self::Ok {
+        self.output
+    }
+}
+
+impl MutableWriteStarlark for &mut WriteStarlark {
+    type Ok = ();
+    fn mutable(&mut self) -> &mut WriteStarlark {
+        self
+    }
+    fn output(self) -> Self::Ok {}
+}
+
+pub(crate) struct Serializer<W> {
+    write: W,
+}
+
+impl<W> serde::Serializer for Serializer<W>
+where
+    W: MutableWriteStarlark,
+{
+    type Ok = W::Ok;
+    type Error = Error;
+    type SerializeSeq = WriteSeq<W>;
+    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
+
+    fn serialize_bool(mut self, v: bool) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+        write.output.push_str(if v { "True" } else { "False" });
+        Ok(self.write.output())
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
@@ -49,9 +90,10 @@ impl<'a> Serializer for &'a mut WriteStarlark {
         self.serialize_i32(i32::from(v))
     }
 
-    fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        write!(self.output, "{}", v).unwrap();
-        Ok(())
+    fn serialize_i32(mut self, v: i32) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+        write!(write.output, "{}", v).unwrap();
+        Ok(self.write.output())
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
@@ -128,9 +170,10 @@ impl<'a> Serializer for &'a mut WriteStarlark {
         value.serialize(self)
     }
 
-    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        self.output.push_str("None");
-        Ok(())
+    fn serialize_unit(mut self) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+        write.output.push_str("None");
+        Ok(self.write.output())
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
@@ -170,14 +213,15 @@ impl<'a> Serializer for &'a mut WriteStarlark {
         Err(error::unsupported_enum(name, variant))
     }
 
-    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+    fn serialize_seq(mut self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         let newlines = len.map_or(true, |len| len > 1);
-        self.output.push('[');
+        let write = self.write.mutable();
+        write.output.push('[');
         if newlines {
-            self.indent();
+            write.indent();
         }
         Ok(WriteSeq {
-            serializer: self,
+            write: self.write,
             newlines,
         })
     }
@@ -227,34 +271,39 @@ impl<'a> Serializer for &'a mut WriteStarlark {
     }
 }
 
-pub(crate) struct WriteSeq<'a> {
-    serializer: &'a mut WriteStarlark,
+pub struct WriteSeq<W> {
+    write: W,
     newlines: bool,
 }
 
-impl SerializeSeq for WriteSeq<'_> {
-    type Ok = ();
+impl<W> SerializeSeq for WriteSeq<W>
+where
+    W: MutableWriteStarlark,
+{
+    type Ok = W::Ok;
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: Serialize + ?Sized,
     {
+        let write = self.write.mutable();
         if self.newlines {
-            self.serializer.newline();
+            write.newline();
         }
-        value.serialize(&mut *self.serializer)?;
+        value.serialize(Serializer { write: &mut *write })?;
         if self.newlines {
-            self.serializer.output.push(',');
+            write.output.push(',');
         }
         Ok(())
     }
 
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
         if self.newlines {
-            self.serializer.unindent();
+            write.unindent();
         }
-        self.serializer.output.push(']');
-        Ok(())
+        write.output.push(']');
+        Ok(self.write.output())
     }
 }
