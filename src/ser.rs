@@ -1,5 +1,7 @@
+use crate::error;
 use crate::Error;
 use serde::ser::{Impossible, Serialize, Serializer};
+use std::fmt::Write;
 
 pub(crate) struct WriteStarlark {
     output: String,
@@ -17,59 +19,76 @@ impl Serializer for &mut WriteStarlark {
     type SerializeStructVariant = Impossible<(), Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        self.output.push_str(if v { "True" } else { "False" });
+        Ok(())
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        self.serialize_i32(i32::from(v))
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        self.serialize_i32(i32::from(v))
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        write!(self.output, "{}", v).unwrap();
+        Ok(())
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        match i32::try_from(v) {
+            Ok(v) => self.serialize_i32(v),
+            Err(_) => Err(error::unsupported_i64(v)),
+        }
     }
 
     fn serialize_i128(self, v: i128) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        match i32::try_from(v) {
+            Ok(v) => self.serialize_i32(v),
+            Err(_) => Err(error::unsupported_i128(v)),
+        }
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        self.serialize_i32(i32::from(v))
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        self.serialize_i32(i32::from(v))
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        match i32::try_from(v) {
+            Ok(v) => self.serialize_i32(v),
+            Err(_) => Err(error::unsupported_u32(v)),
+        }
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        match i32::try_from(v) {
+            Ok(v) => self.serialize_i32(v),
+            Err(_) => Err(error::unsupported_u64(v)),
+        }
     }
 
     fn serialize_u128(self, v: u128) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        match i32::try_from(v) {
+            Ok(v) => self.serialize_i32(v),
+            Err(_) => Err(error::unsupported_u128(v)),
+        }
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(error::unsupported_f32(v))
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(error::unsupported_f64(v))
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(error::unsupported_char(v))
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {

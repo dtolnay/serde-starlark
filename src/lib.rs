@@ -1,10 +1,11 @@
+mod error;
 mod ser;
 
 use serde::ser::{Impossible, Serialize};
-use std::fmt::{self, Display};
 
-#[derive(Debug)]
-pub struct Error {}
+pub struct Error {
+    kind: crate::error::ErrorKind,
+}
 
 pub fn to_string<T>(value: &T) -> Result<String, Error>
 where
@@ -190,17 +191,3 @@ impl serde::Serializer for Serializer {
         unimplemented!()
     }
 }
-
-impl Display for Error {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        unimplemented!()
-    }
-}
-
-impl serde::ser::Error for Error {
-    fn custom<T: Display>(message: T) -> Self {
-        unimplemented!()
-    }
-}
-
-impl serde::ser::StdError for Error {}
