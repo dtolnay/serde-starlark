@@ -1,6 +1,6 @@
 use crate::error;
 use crate::Error;
-use serde::ser::{Impossible, Serialize, SerializeSeq};
+use serde::ser::{Impossible, Serialize, SerializeMap, SerializeSeq};
 use std::fmt::Write;
 use std::iter;
 
@@ -72,7 +72,7 @@ where
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
-    type SerializeMap = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = WriteMap<W>;
     type SerializeStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
@@ -248,8 +248,17 @@ where
         Err(error::unsupported_enum(name, variant))
     }
 
-    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        unimplemented!()
+    fn serialize_map(mut self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        let newlines = len.map_or(true, |len| len > 0);
+        let write = self.write.mutable();
+        write.output.push('{');
+        if newlines {
+            write.indent();
+        }
+        Ok(WriteMap {
+            write: self.write,
+            newlines,
+        })
     }
 
     fn serialize_struct(
@@ -304,6 +313,49 @@ where
             write.unindent();
         }
         write.output.push(']');
+        Ok(self.write.output())
+    }
+}
+
+pub struct WriteMap<W> {
+    write: W,
+    newlines: bool,
+}
+
+impl<W> SerializeMap for WriteMap<W>
+where
+    W: MutableWriteStarlark,
+{
+    type Ok = W::Ok;
+    type Error = Error;
+
+    fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        let write = self.write.mutable();
+        write.newline();
+        key.serialize(Serializer { write: &mut *write })?;
+        write.output.push_str(": ");
+        Ok(())
+    }
+
+    fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        let write = self.write.mutable();
+        value.serialize(Serializer { write: &mut *write })?;
+        write.output.push(',');
+        Ok(())
+    }
+
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+        if self.newlines {
+            write.unindent();
+        }
+        write.output.push('}');
         Ok(self.write.output())
     }
 }

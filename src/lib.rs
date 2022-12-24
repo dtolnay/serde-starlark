@@ -1,7 +1,7 @@
 mod error;
 mod ser;
 
-use crate::ser::{WriteSeq, WriteStarlark};
+use crate::ser::{WriteMap, WriteSeq, WriteStarlark};
 use serde::ser::{Impossible, Serialize};
 
 pub struct Error {
@@ -24,7 +24,7 @@ impl serde::Serializer for Serializer {
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
-    type SerializeMap = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = WriteMap<WriteStarlark>;
     type SerializeStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
