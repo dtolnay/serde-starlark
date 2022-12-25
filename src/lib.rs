@@ -1,3 +1,4 @@
+mod call;
 mod error;
 mod ser;
 
@@ -14,6 +15,17 @@ where
     T: ?Sized + Serialize,
 {
     value.serialize(Serializer)
+}
+
+pub struct FunctionCall<A> {
+    function: &'static str,
+    args: A,
+}
+
+impl<A> FunctionCall<A> {
+    pub fn new(function: &'static str, args: A) -> Self {
+        FunctionCall { function, args }
+    }
 }
 
 pub struct Serializer;

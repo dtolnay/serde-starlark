@@ -16,6 +16,7 @@ pub(crate) enum ErrorKind {
     UnsupportedUnitStruct(&'static str),
     UnsupportedTuple,
     UnsupportedEnum(&'static str, &'static str),
+    UnsupportedCall,
 }
 
 impl Display for Error {
@@ -52,6 +53,7 @@ impl Display for Error {
                     name, variant,
                 )
             }
+            UnsupportedCall => formatter.write_str("unsupported function call argument type"),
         }
     }
 }
@@ -140,4 +142,8 @@ pub(crate) fn unsupported_tuple() -> Error {
 
 pub(crate) fn unsupported_enum(name: &'static str, variant: &'static str) -> Error {
     ErrorKind::UnsupportedEnum(name, variant).into()
+}
+
+pub(crate) fn unsupported_call() -> Error {
+    ErrorKind::UnsupportedCall.into()
 }
