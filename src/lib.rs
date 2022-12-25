@@ -2,7 +2,7 @@ mod error;
 mod ser;
 
 use crate::newline::WithNewline;
-use crate::ser::{WriteMap, WriteSeq, WriteStarlark, WriteStruct};
+use crate::ser::{WriteMap, WriteSeq, WriteStarlark, WriteStruct, WriteTupleStruct};
 use serde::ser::{Impossible, Serialize};
 
 pub struct Error {
@@ -23,7 +23,7 @@ impl serde::Serializer for Serializer {
     type Error = Error;
     type SerializeSeq = WithNewline<WriteSeq<WriteStarlark>>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
-    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = WithNewline<WriteTupleStruct<WriteStarlark>>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = WithNewline<WriteMap<WriteStarlark>>;
     type SerializeStruct = WithNewline<WriteStruct<WriteStarlark>>;
@@ -166,7 +166,9 @@ impl serde::Serializer for Serializer {
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        WriteStarlark::new().serialize_tuple_struct(name, len)
+        WriteStarlark::new()
+            .serialize_tuple_struct(name, len)
+            .map(WithNewline)
     }
 
     fn serialize_tuple_variant(
@@ -211,7 +213,9 @@ fn newline(mut starlark: String) -> String {
 
 mod newline {
     use super::newline;
-    use serde::ser::{Serialize, SerializeMap, SerializeSeq, SerializeStruct};
+    use serde::ser::{
+        Serialize, SerializeMap, SerializeSeq, SerializeStruct, SerializeTupleStruct,
+    };
 
     pub struct WithNewline<S>(pub(crate) S);
 
@@ -227,6 +231,25 @@ mod newline {
             T: Serialize + ?Sized,
         {
             self.0.serialize_element(value)
+        }
+
+        fn end(self) -> Result<Self::Ok, Self::Error> {
+            self.0.end().map(newline)
+        }
+    }
+
+    impl<S> SerializeTupleStruct for WithNewline<S>
+    where
+        S: SerializeTupleStruct<Ok = String>,
+    {
+        type Ok = S::Ok;
+        type Error = S::Error;
+
+        fn serialize_field<T>(&mut self, value: &T) -> Result<(), Self::Error>
+        where
+            T: Serialize + ?Sized,
+        {
+            self.0.serialize_field(value)
         }
 
         fn end(self) -> Result<Self::Ok, Self::Error> {

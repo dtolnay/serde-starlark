@@ -1,6 +1,8 @@
 use crate::error;
 use crate::Error;
-use serde::ser::{Impossible, Serialize, SerializeMap, SerializeSeq, SerializeStruct};
+use serde::ser::{
+    Impossible, Serialize, SerializeMap, SerializeSeq, SerializeStruct, SerializeTupleStruct,
+};
 use std::fmt::Write;
 use std::iter;
 
@@ -70,7 +72,7 @@ where
     type Error = Error;
     type SerializeSeq = WriteSeq<W>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
-    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = WriteTupleStruct<W>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = WriteMap<W>;
     type SerializeStruct = WriteStruct<W>;
@@ -274,11 +276,19 @@ where
     }
 
     fn serialize_tuple_struct(
-        self,
-        _name: &'static str,
+        mut self,
+        name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        self.serialize_tuple(len)
+        let newlines = len > 1;
+        let write = self.write.mutable();
+        write.output.push_str(name);
+        write.output.push('(');
+        Ok(WriteTupleStruct {
+            write: self.write,
+            newlines,
+            len: 0,
+        })
     }
 
     fn serialize_tuple_variant(
@@ -362,6 +372,50 @@ where
             write.unindent();
         }
         write.output.push(']');
+        Ok(self.write.output())
+    }
+}
+
+pub struct WriteTupleStruct<W> {
+    write: W,
+    newlines: bool,
+    len: usize,
+}
+
+impl<W> SerializeTupleStruct for WriteTupleStruct<W>
+where
+    W: MutableWriteStarlark,
+{
+    type Ok = W::Ok;
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        let write = self.write.mutable();
+        if self.newlines {
+            if self.len == 0 {
+                write.indent();
+            }
+            write.newline();
+        } else if self.len > 0 {
+            write.output.push_str(", ");
+        }
+        self.len += 1;
+        value.serialize(Serializer { write: &mut *write })?;
+        if self.newlines {
+            write.output.push(',');
+        }
+        Ok(())
+    }
+
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+        if self.len != 0 && self.newlines {
+            write.unindent();
+        }
+        write.output.push(')');
         Ok(self.write.output())
     }
 }
