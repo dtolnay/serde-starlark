@@ -151,8 +151,51 @@ where
         Err(error::unsupported_char(v))
     }
 
-    fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+    fn serialize_str(mut self, v: &str) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+
+        // Reference:
+        // https://github.com/bazelbuild/starlark/blob/master/spec.md#string-literals
+        write.output.reserve(v.len() + 2);
+        write.output.push('"');
+        let mut chars = v.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if let Some(escape) = match ch {
+                '\x07' => Some('a'), // alert or bell
+                '\x08' => Some('b'), // backspace
+                '\x0C' => Some('f'), // form feed
+                '\n' => Some('n'),   // line feed
+                '\r' => Some('r'),   // carriage return
+                '\t' => Some('t'),   // horizontal tab
+                '\x0B' => Some('v'), // vertical tab
+                '"' => Some('"'),
+                '\\' => Some('\\'),
+                _ => None,
+            } {
+                write.output.push('\\');
+                write.output.push(escape);
+            } else if ch.is_ascii_control()
+                && (ch as u8 >= 0o100 || chars.peek().map_or(true, |next| !next.is_digit(8)))
+            {
+                // Starlark has variable-width octal escapes: \0 through \177.
+                // In order to use it we need to make sure the next character is
+                // not going to be an octal digit.
+                write!(write.output, "\\{:o}", ch as u8).unwrap();
+            } else if ch.is_control() {
+                if ch <= '\x7F' {
+                    write!(write.output, "\\x{:02X}", ch as u8).unwrap();
+                } else if ch <= '\u{FFFF}' {
+                    write!(write.output, "\\u{:04X}", ch as u16).unwrap();
+                } else {
+                    write!(write.output, "\\U{:08X}", ch as u32).unwrap();
+                }
+            } else {
+                write.output.push(ch);
+            }
+        }
+        write.output.push('"');
+
+        Ok(self.write.output())
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
