@@ -1,6 +1,6 @@
 use crate::error;
 use crate::Error;
-use serde::ser::{Impossible, Serialize, SerializeMap, SerializeSeq};
+use serde::ser::{Impossible, Serialize, SerializeMap, SerializeSeq, SerializeStruct};
 use std::fmt::Write;
 use std::iter;
 
@@ -73,7 +73,7 @@ where
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = WriteMap<W>;
-    type SerializeStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = WriteStruct<W>;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(mut self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -305,11 +305,17 @@ where
     }
 
     fn serialize_struct(
-        self,
+        mut self,
         name: &'static str,
-        len: usize,
+        _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        unimplemented!()
+        let write = self.write.mutable();
+        write.output.push_str(name);
+        write.output.push('(');
+        Ok(WriteStruct {
+            write: self.write,
+            len: 0,
+        })
     }
 
     fn serialize_struct_variant(
@@ -399,6 +405,45 @@ where
             write.unindent();
         }
         write.output.push('}');
+        Ok(self.write.output())
+    }
+}
+
+pub struct WriteStruct<W> {
+    write: W,
+    len: usize,
+}
+
+impl<W> SerializeStruct for WriteStruct<W>
+where
+    W: MutableWriteStarlark,
+{
+    type Ok = W::Ok;
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        let write = self.write.mutable();
+        if self.len == 0 {
+            write.indent();
+        }
+        self.len += 1;
+        write.newline();
+        write.output.push_str(key);
+        write.output.push_str(" = ");
+        value.serialize(Serializer { write: &mut *write })?;
+        write.output.push(',');
+        Ok(())
+    }
+
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+        if self.len != 0 {
+            write.unindent();
+        }
+        write.output.push(')');
         Ok(self.write.output())
     }
 }
