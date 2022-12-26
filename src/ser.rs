@@ -471,6 +471,31 @@ pub struct WriteStruct<W> {
     len: usize,
 }
 
+impl<W> WriteStruct<W>
+where
+    W: MutableWriteStarlark,
+{
+    fn pre_key(&mut self) {
+        let write = self.write.mutable();
+        if self.newlines {
+            if self.len == 0 {
+                write.indent();
+            }
+            write.newline();
+        } else if self.len > 0 {
+            write.output.push_str(", ");
+        }
+        self.len += 1;
+    }
+
+    fn post_value(&mut self) {
+        let write = self.write.mutable();
+        if self.newlines {
+            write.output.push(',');
+        }
+    }
+}
+
 impl<W> SerializeStruct for WriteStruct<W>
 where
     W: MutableWriteStarlark,
@@ -482,40 +507,22 @@ where
     where
         T: Serialize + ?Sized,
     {
-        let write = self.write.mutable();
         if key == "$key" {
-            if self.newlines {
-                if self.len == 0 {
-                    write.indent();
-                }
-                write.newline();
-            } else if self.len > 0 {
-                write.output.push_str(", ");
-            }
-            self.len += 1;
+            self.pre_key();
+            let write = self.write.mutable();
             value.serialize(BareStringSerializer { write: &mut *write })?;
             write.output.push_str(" = ");
         } else if key == "$value" {
+            let write = self.write.mutable();
             value.serialize(Serializer { write: &mut *write })?;
-            if self.newlines {
-                write.output.push(',');
-            }
+            self.post_value();
         } else {
-            if self.newlines {
-                if self.len == 0 {
-                    write.indent();
-                }
-                write.newline();
-            } else if self.len > 0 {
-                write.output.push_str(", ");
-            }
-            self.len += 1;
+            self.pre_key();
+            let write = self.write.mutable();
             write.output.push_str(key);
             write.output.push_str(" = ");
             value.serialize(Serializer { write: &mut *write })?;
-            if self.newlines {
-                write.output.push(',');
-            }
+            self.post_value();
         }
         Ok(())
     }
