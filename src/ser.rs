@@ -317,13 +317,15 @@ where
     fn serialize_struct(
         mut self,
         name: &'static str,
-        _len: usize,
+        len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
+        let newlines = len >= 1;
         let write = self.write.mutable();
         write.output.push_str(name);
         write.output.push('(');
         Ok(WriteStruct {
             write: self.write,
+            newlines,
             len: 0,
         })
     }
@@ -465,6 +467,7 @@ where
 
 pub struct WriteStruct<W> {
     write: W,
+    newlines: bool,
     len: usize,
 }
 
@@ -480,31 +483,46 @@ where
         T: Serialize + ?Sized,
     {
         let write = self.write.mutable();
-        if self.len == 0 {
-            write.indent();
-        }
         if key == "$key" {
+            if self.newlines {
+                if self.len == 0 {
+                    write.indent();
+                }
+                write.newline();
+            } else if self.len > 0 {
+                write.output.push_str(", ");
+            }
             self.len += 1;
-            write.newline();
             value.serialize(BareStringSerializer { write: &mut *write })?;
             write.output.push_str(" = ");
         } else if key == "$value" {
             value.serialize(Serializer { write: &mut *write })?;
-            write.output.push(',');
+            if self.newlines {
+                write.output.push(',');
+            }
         } else {
+            if self.newlines {
+                if self.len == 0 {
+                    write.indent();
+                }
+                write.newline();
+            } else if self.len > 0 {
+                write.output.push_str(", ");
+            }
             self.len += 1;
-            write.newline();
             write.output.push_str(key);
             write.output.push_str(" = ");
             value.serialize(Serializer { write: &mut *write })?;
-            write.output.push(',');
+            if self.newlines {
+                write.output.push(',');
+            }
         }
         Ok(())
     }
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.len != 0 {
+        if self.len != 0 && self.newlines {
             write.unindent();
         }
         write.output.push(')');
