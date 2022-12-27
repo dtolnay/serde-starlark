@@ -1,6 +1,11 @@
 serde_starlark
 ==============
 
+[<img alt="github" src="https://img.shields.io/badge/github-dtolnay/serde--starlark-8da0cb?style=for-the-badge&labelColor=555555&logo=github" height="20">](https://github.com/dtolnay/serde-starlark)
+[<img alt="crates.io" src="https://img.shields.io/crates/v/serde_starlark.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/serde_starlark)
+[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-serde_starlark-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/serde_starlark)
+[<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/dtolnay/serde-starlark/ci.yml?branch=master&style=for-the-badge" height="20">](https://github.com/dtolnay/serde-starlark/actions?query=branch%3Amaster)
+
 Serde serializer for generating syntactically valid Starlark, the declarative
 format used for describing build targets in build systems including [Bazel],
 [Buck], [Pants], and [Please].
