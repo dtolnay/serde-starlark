@@ -97,6 +97,80 @@ where
     value.serialize(Serializer)
 }
 
+/// Serialize a map as a function call.
+///
+/// Primarily this becomes involved when using the `serde(flatten)` attribute.
+/// For example:
+///
+/// ```
+/// # use serde_derive::Serialize;
+/// #
+/// pub enum Rule {
+///     RustLibrary(RustLibrary),
+///     RustBinary(RustBinary),
+/// }
+///
+/// #[derive(Serialize)]
+/// pub struct RustLibrary {
+///     #[serde(flatten)]
+///     common: RustCommon,
+///
+///     proc_macro: bool,
+/// }
+///
+/// #[derive(Serialize)]
+/// pub struct RustBinary {
+///     #[serde(flatten)]
+///     common: RustCommon,
+/// }
+///
+/// #[derive(Serialize)]
+/// pub struct RustCommon {
+///     name: String,
+///     deps: Vec<String>,
+///     // ...
+/// }
+/// ```
+///
+/// Normally, structs with named fields get serialized as function calls with
+/// named arguments by serde_starlark. However a quirk of `serde(flatten)` is
+/// that Serde processes structs containing this attribute as if they were maps,
+/// not structs. In Starlark unlike in JSON, maps and structs are differently
+/// serialized, so we would need to use a `FunctionCall` in this situation to
+/// ensure we get a function call in the serialized output, not a map.
+///
+/// ```
+/// # use serde_derive::Serialize;
+/// #
+/// # pub enum Rule {
+/// #     RustLibrary(RustLibrary),
+/// #     RustBinary(RustBinary),
+/// # }
+/// #
+/// # #[derive(Serialize)]
+/// # pub struct RustLibrary {}
+/// # #[derive(Serialize)]
+/// # pub struct RustBinary {}
+/// #
+/// use serde::ser::{Serialize, Serializer};
+/// use serde_starlark::FunctionCall;
+///
+/// impl Serialize for Rule {
+///     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+///     where
+///         S: Serializer,
+///     {
+///         match self {
+///             Rule::RustLibrary(library) => {
+///                 FunctionCall::new("rust_library", library).serialize(serializer)
+///             }
+///             Rule::RustBinary(binary) => {
+///                 FunctionCall::new("rust_binary", binary).serialize(serializer)
+///             }
+///         }
+///     }
+/// }
+/// ```
 pub struct FunctionCall<A> {
     function: &'static str,
     args: A,
