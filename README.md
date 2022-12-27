@@ -14,7 +14,50 @@ format used for describing build targets in build systems including [Bazel],
 
 ## Example
 
-TODO
+The following example serializes a minimal Bazel target for the `syn` crate.
+
+The _tests/bazel.rs_ test in this repo has a somewhat more fleshed out example
+of this use case, including things like `load(…)`, `package(default_visibility =
+…)`, distinct `include` and `exclude` arguments to `glob(…)`, and `select({…})`.
+
+```rust
+#[derive(Serialize)]
+#[serde(rename = "rust_library")]
+pub struct RustLibrary {
+    pub name: String,
+    pub srcs: Glob,
+    pub crate_features: BTreeSet<String>,
+    pub edition: u16,
+    pub deps: BTreeSet<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename = "glob")]
+pub struct Glob(pub BTreeSet<String>);
+
+fn main() {
+    let rust_library = RustLibrary { ... };
+
+    print!("{}", serde_starlark::to_string(&rust_library).unwrap());
+}
+```
+
+```bzl
+rust_library(
+    name = "syn",
+    srcs = glob(["**/*.rs"]),
+    crate_features = [
+        "default",
+        "full",
+    ],
+    edition = 2018,
+    deps = [
+        ":proc-macro2",
+        ":quote",
+        ":unicode-ident",
+    ],
+)
+```
 
 #### License
 
