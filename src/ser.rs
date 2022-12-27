@@ -509,7 +509,12 @@ where
     where
         T: Serialize + ?Sized,
     {
-        if key == "$key" {
+        if key == "" {
+            self.pre_key();
+            let write = self.write.mutable();
+            value.serialize(Serializer { write: &mut *write })?;
+            self.post_value();
+        } else if key == "$key" {
             self.pre_key();
             let write = self.write.mutable();
             value.serialize(BareStringSerializer { write: &mut *write })?;
