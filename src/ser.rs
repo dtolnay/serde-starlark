@@ -518,7 +518,6 @@ where
             self.pre_key();
             let write = self.write.mutable();
             value.serialize(BareStringSerializer { write: &mut *write })?;
-            write.output.push_str(" = ");
         } else if key == "*value" {
             let write = self.write.mutable();
             value.serialize(Serializer { write: &mut *write })?;
@@ -616,7 +615,10 @@ impl<'a> serde::Serializer for BareStringSerializer<'a> {
     }
 
     fn serialize_str(self, key: &str) -> Result<Self::Ok, Self::Error> {
-        self.write.output.push_str(key);
+        if key != "" {
+            self.write.output.push_str(key);
+            self.write.output.push_str(" = ");
+        }
         Ok(())
     }
 
