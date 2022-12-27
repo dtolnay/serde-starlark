@@ -243,13 +243,13 @@ where
 ///     }
 /// }
 /// ```
-pub struct FunctionCall<A> {
-    function: &'static str,
+pub struct FunctionCall<'name, A> {
+    function: &'name str,
     args: A,
 }
 
-impl<A> FunctionCall<A> {
-    pub fn new(function: &'static str, args: A) -> Self {
+impl<'name, A> FunctionCall<'name, A> {
+    pub fn new(function: &'name str, args: A) -> Self {
         FunctionCall { function, args }
     }
 }

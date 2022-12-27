@@ -4,7 +4,7 @@ use serde::ser::{
     SerializeTupleStruct, Serializer,
 };
 
-impl<A> Serialize for FunctionCall<A>
+impl<A> Serialize for FunctionCall<'static, A>
 where
     A: Serialize,
 {
@@ -19,16 +19,16 @@ where
     }
 }
 
-struct FunctionCallSerializer<S> {
-    function: &'static str,
+struct FunctionCallSerializer<'name, S> {
+    function: &'name str,
     delegate: S,
 }
 
-impl<S> FunctionCallSerializer<S> {
+impl<'name, S> FunctionCallSerializer<'name, S> {
     const UNSUPPORTED: &str = "unsupported function call argument type";
 }
 
-impl<S> Serializer for FunctionCallSerializer<S>
+impl<S> Serializer for FunctionCallSerializer<'static, S>
 where
     S: Serializer,
 {
