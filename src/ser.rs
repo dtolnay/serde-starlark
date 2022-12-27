@@ -509,7 +509,7 @@ where
     where
         T: Serialize + ?Sized,
     {
-        if key == "" {
+        if key.is_empty() {
             self.pre_key();
             let write = self.write.mutable();
             value.serialize(Serializer { write: &mut *write })?;
@@ -615,7 +615,7 @@ impl<'a> serde::Serializer for BareStringSerializer<'a> {
     }
 
     fn serialize_str(self, key: &str) -> Result<Self::Ok, Self::Error> {
-        if key != "" {
+        if !key.is_empty() {
             self.write.output.push_str(key);
             self.write.output.push_str(" = ");
         }
