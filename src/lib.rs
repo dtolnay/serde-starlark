@@ -1,4 +1,9 @@
-#![allow(clippy::uninlined_format_args)]
+#![allow(
+    clippy::enum_glob_use,
+    clippy::missing_errors_doc,
+    clippy::module_name_repetitions,
+    clippy::uninlined_format_args
+)]
 
 mod call;
 mod error;
