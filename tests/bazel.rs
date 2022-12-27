@@ -74,9 +74,7 @@ impl Serialize for Glob {
         S: Serializer,
     {
         if self.exclude.is_empty() {
-            let mut s = serializer.serialize_tuple_struct("glob", 1)?;
-            s.serialize_field(&self.include)?;
-            s.end()
+            serializer.serialize_newtype_struct("glob", &self.include)
         } else {
             let mut s = serializer.serialize_struct("glob", 2)?;
             s.serialize_field("include", &self.include)?;
@@ -92,9 +90,7 @@ where
     V: Serialize,
     S: Serializer,
 {
-    let mut s = serializer.serialize_tuple_struct("select", 1)?;
-    s.serialize_field(deps)?;
-    s.end()
+    serializer.serialize_newtype_struct("select", deps)
 }
 
 #[test]
