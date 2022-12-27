@@ -142,6 +142,7 @@
 //! omit fields with value `None` from the serialized output.
 
 #![allow(
+    clippy::doc_markdown,
     clippy::enum_glob_use,
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,
