@@ -268,14 +268,14 @@ where
     where
         T: Serialize + ?Sized,
     {
-        self.delegate.serialize_field("$key", key)
+        self.delegate.serialize_field("*key", key)
     }
 
     fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: Serialize + ?Sized,
     {
-        self.delegate.serialize_field("$value", value)
+        self.delegate.serialize_field("*value", value)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {

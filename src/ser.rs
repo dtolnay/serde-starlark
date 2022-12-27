@@ -514,12 +514,12 @@ where
             let write = self.write.mutable();
             value.serialize(Serializer { write: &mut *write })?;
             self.post_value();
-        } else if key == "$key" {
+        } else if key == "*key" {
             self.pre_key();
             let write = self.write.mutable();
             value.serialize(BareStringSerializer { write: &mut *write })?;
             write.output.push_str(" = ");
-        } else if key == "$value" {
+        } else if key == "*value" {
             let write = self.write.mutable();
             value.serialize(Serializer { write: &mut *write })?;
             self.post_value();
