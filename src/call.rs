@@ -137,12 +137,12 @@ where
     fn serialize_newtype_struct<T>(
         self,
         _name: &'static str,
-        value: &T,
+        _value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: Serialize + ?Sized,
     {
-        value.serialize(self)
+        Err(Error::custom(Self::UNSUPPORTED))
     }
 
     fn serialize_newtype_variant<T>(
