@@ -649,9 +649,9 @@ impl<'a> serde::Serializer for BareStringSerializer<'a> {
         self,
         _name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        Err(error::unsupported_call())
+        self.serialize_str(variant)
     }
 
     fn serialize_newtype_struct<T>(
