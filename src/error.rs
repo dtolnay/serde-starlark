@@ -13,6 +13,7 @@ pub(crate) enum ErrorKind {
     UnsupportedF64(f64),
     UnsupportedChar(char),
     UnsupportedBytes,
+    UnsupportedUnit,
     UnsupportedUnitStruct(&'static str),
     UnsupportedEnum(&'static str, &'static str),
     UnsupportedCall,
@@ -37,6 +38,9 @@ impl Display for Error {
             ),
             UnsupportedBytes => formatter
                 .write_str("serialization of Starlark byte string literals is not supported yet"),
+            UnsupportedUnit => formatter.write_str(
+                "serialization of () is not supported; use serialize_none to produce `None`",
+            ),
             UnsupportedUnitStruct(name) => {
                 write!(
                     formatter,
@@ -128,6 +132,10 @@ pub(crate) fn unsupported_char(v: char) -> Error {
 
 pub(crate) fn unsupported_bytes() -> Error {
     ErrorKind::UnsupportedBytes.into()
+}
+
+pub(crate) fn unsupported_unit() -> Error {
+    ErrorKind::UnsupportedUnit.into()
 }
 
 pub(crate) fn unsupported_unit_struct(name: &'static str) -> Error {
