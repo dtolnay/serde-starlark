@@ -54,3 +54,15 @@ fn test_flatten_struct() {
     )
     "###);
 }
+
+#[test]
+fn test_function_call_positional() {
+    let function_call = FunctionCall::new("load", ["@rules_rust//rust:defs.bzl", "rust_library"]);
+    let starlark = serde_starlark::to_string(&function_call).unwrap();
+    assert_snapshot!(starlark, @r###"
+    load(
+        "@rules_rust//rust:defs.bzl",
+        "rust_library",
+    )
+    "###);
+}
