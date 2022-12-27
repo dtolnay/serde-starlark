@@ -1,4 +1,6 @@
-use insta::assert_display_snapshot;
+#[macro_use]
+mod macros;
+
 use itertools::Itertools;
 use serde::ser::{Serialize, SerializeStruct, SerializeTupleStruct, Serializer};
 use serde_derive::Serialize;
@@ -130,7 +132,7 @@ fn test_struct() {
         .map(Result::unwrap)
         .join("\n");
 
-    assert_display_snapshot!(starlark, @r###"
+    assert_snapshot!(starlark, @r###"
     load("@rules_rust//rust:defs.bzl", "rust_library")
 
     package(default_visibility = ["//visibility:public"])

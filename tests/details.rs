@@ -1,4 +1,5 @@
-use insta::assert_display_snapshot;
+#[macro_use]
+mod macros;
 
 #[test]
 fn test_string_escape() {
@@ -11,7 +12,7 @@ fn test_string_escape() {
     ];
 
     let starlark = serde_starlark::to_string(strings).unwrap();
-    assert_display_snapshot!(starlark, @r###"
+    assert_snapshot!(starlark, @r###"
     [
         "\a \b \f \n \r \t \v \\",
         "Have you read \"To Kill a Mockingbird?\"",
