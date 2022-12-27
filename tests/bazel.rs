@@ -40,6 +40,7 @@ pub struct Glob {
 }
 
 #[derive(Serialize, Ord, PartialOrd, Eq, PartialEq)]
+#[serde(transparent)]
 pub struct Condition(pub &'static str);
 
 impl Serialize for Load {

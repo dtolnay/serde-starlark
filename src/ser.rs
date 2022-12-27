@@ -236,13 +236,15 @@ where
 
     fn serialize_newtype_struct<T>(
         self,
-        _name: &'static str,
+        name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: Serialize + ?Sized,
     {
-        value.serialize(self)
+        let mut tuple = self.serialize_tuple_struct(name, 1)?;
+        tuple.serialize_field(value)?;
+        tuple.end()
     }
 
     fn serialize_newtype_variant<T>(
