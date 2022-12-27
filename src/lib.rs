@@ -70,6 +70,68 @@
 //!     ],
 //! )
 //! ```
+//!
+//! # Data model
+//!
+//! The primitive types (integers, boolean, string) serialize in the obvious way
+//! to Starlark.
+//!
+//! Serde sequences serialize to Starlark arrays. Serde maps serialize to
+//! Starlark maps.
+//!
+//! Rust structs with named fields serialize to Starlark "function calls" with
+//! named arguments:
+//!
+//! ```
+//! # use serde_derive::Serialize;
+//! #
+//! #[derive(Serialize)]
+//! #[serde(rename = "rust_library")]
+//! pub struct RustLibrary {
+//!     pub name: String,
+//!     pub edition: u16,
+//! }
+//! ```
+//!
+//! ```bzl
+//! rust_library(
+//!     name = "syn",
+//!     edition = 2018,
+//! )
+//! ```
+//!
+//! Rust newtype structs and tuple structs serialize to Starlark "function
+//! calls" with positional arguments:
+//!
+//! ```
+//! # use serde_derive::Serialize;
+//! # use std::collections::BTreeMap;
+//! #
+//! #[derive(Serialize)]
+//! #[serde(rename = "select")]
+//! pub struct Select<T>(pub BTreeMap<String, T>);
+//! ```
+//!
+//! ```bzl
+//! select({
+//!     "//conditions:default": [],
+//! })
+//! ```
+//!
+//! To make a newtype struct which does not appear as a function call, use the
+//! `serde(transparent)` attribute.
+//!
+//! ```
+//! # use serde_derive::Serialize;
+//! #
+//! #[derive(Serialize)]
+//! #[serde(transparent)]
+//! pub struct Dependency(pub String);
+//! ```
+//!
+//! Fields of type `Option<T>` serialize as either `None` or the value if
+//! present. Consider using `serde(skip_serializing_if = "Option::is_none")` to
+//! omit fields with value `None` from the serialized output.
 
 #![allow(
     clippy::enum_glob_use,
