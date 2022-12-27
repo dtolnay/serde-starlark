@@ -264,12 +264,10 @@ where
         let newlines = len.map_or(true, |len| len > 1);
         let write = self.write.mutable();
         write.output.push('[');
-        if newlines {
-            write.indent();
-        }
         Ok(WriteSeq {
             write: self.write,
             newlines,
+            len: 0,
         })
     }
 
@@ -313,12 +311,10 @@ where
         let newlines = len.map_or(true, |len| len > 0);
         let write = self.write.mutable();
         write.output.push('{');
-        if newlines {
-            write.indent();
-        }
         Ok(WriteMap {
             write: self.write,
             newlines,
+            len: 0,
         })
     }
 
@@ -356,6 +352,7 @@ where
 pub struct WriteSeq<W> {
     write: W,
     newlines: bool,
+    len: usize,
 }
 
 impl<W> SerializeSeq for WriteSeq<W>
@@ -371,8 +368,14 @@ where
     {
         let write = self.write.mutable();
         if self.newlines {
+            if self.len == 0 {
+                write.indent();
+            }
             write.newline();
+        } else if self.len > 0 {
+            write.output.push_str(", ");
         }
+        self.len += 1;
         value.serialize(Serializer { write: &mut *write })?;
         if self.newlines {
             write.output.push(',');
@@ -382,7 +385,7 @@ where
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.newlines {
+        if self.len != 0 && self.newlines {
             write.unindent();
         }
         write.output.push(']');
@@ -447,6 +450,7 @@ where
 pub struct WriteMap<W> {
     write: W,
     newlines: bool,
+    len: usize,
 }
 
 impl<W> SerializeMap for WriteMap<W>
@@ -461,7 +465,15 @@ where
         T: Serialize + ?Sized,
     {
         let write = self.write.mutable();
-        write.newline();
+        if self.newlines {
+            if self.len == 0 {
+                write.indent();
+            }
+            write.newline();
+        } else if self.len > 0 {
+            write.output.push_str(", ");
+        }
+        self.len += 1;
         key.serialize(Serializer { write: &mut *write })?;
         write.output.push_str(": ");
         Ok(())
@@ -473,13 +485,15 @@ where
     {
         let write = self.write.mutable();
         value.serialize(Serializer { write: &mut *write })?;
-        write.output.push(',');
+        if self.newlines {
+            write.output.push(',');
+        }
         Ok(())
     }
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.newlines {
+        if self.len != 0 && self.newlines {
             write.unindent();
         }
         write.output.push('}');
