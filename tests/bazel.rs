@@ -14,11 +14,11 @@ pub enum Rule {
 
 pub struct Load {
     pub bzl: String,
-    pub items: Vec<String>,
+    pub items: Set<String>,
 }
 
 pub struct Package {
-    pub default_visibility: Vec<String>,
+    pub default_visibility: Set<String>,
 }
 
 #[derive(Serialize)]
@@ -26,7 +26,7 @@ pub struct Package {
 pub struct RustLibrary {
     pub name: String,
     pub srcs: Glob,
-    pub crate_features: Vec<String>,
+    pub crate_features: Set<String>,
     pub edition: u16,
     pub proc_macro: bool,
     pub rustc_env: Map<String, String>,
@@ -35,8 +35,8 @@ pub struct RustLibrary {
 }
 
 pub struct Glob {
-    pub include: Vec<String>,
-    pub exclude: Vec<String>,
+    pub include: Set<String>,
+    pub exclude: Set<String>,
 }
 
 #[derive(Serialize, Ord, PartialOrd, Eq, PartialEq)]
@@ -98,18 +98,18 @@ fn test_struct() {
     let build_syn = vec![
         Rule::Load(Load {
             bzl: "@rules_rust//rust:defs.bzl".to_owned(),
-            items: vec!["rust_library".to_owned()],
+            items: Set::from_iter(["rust_library".to_owned()]),
         }),
         Rule::Package(Package {
-            default_visibility: vec!["//visibility:public".to_owned()],
+            default_visibility: Set::from_iter(["//visibility:public".to_owned()]),
         }),
         Rule::RustLibrary(RustLibrary {
             name: "syn".to_owned(),
             srcs: Glob {
-                include: vec!["**/*.rs".to_owned()],
-                exclude: Vec::new(),
+                include: Set::from_iter(["**/*.rs".to_owned()]),
+                exclude: Set::new(),
             },
-            crate_features: vec!["default".to_owned(), "full".to_owned()],
+            crate_features: Set::from_iter(["default".to_owned(), "full".to_owned()]),
             edition: 2018,
             proc_macro: false,
             rustc_env: Map::new(),
