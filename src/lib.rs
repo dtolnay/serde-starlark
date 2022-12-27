@@ -108,6 +108,12 @@ impl<A> FunctionCall<A> {
     }
 }
 
+/// Serializer whose output `Ok` type is Starlark.
+///
+/// `value.serialize(serde_starlark::Serializer)` is 100% equivalent to
+/// `serde_starlark::to_string(&value)`. However, having direct access to the
+/// Serializer is useful when dealing with libraries that act as Serializer
+/// adapters, such as the erased-serde crate or serde-transcode crate.
 pub struct Serializer;
 
 impl serde::Serializer for Serializer {
