@@ -48,7 +48,7 @@ impl Serialize for Load {
     where
         S: Serializer,
     {
-        let mut s = serializer.serialize_tuple_struct("load", 1 + self.items.len())?;
+        let mut s = serializer.serialize_tuple_struct("load", 0)?;
         s.serialize_field(&self.bzl)?;
         for item in &self.items {
             s.serialize_field(item)?;
@@ -135,10 +135,7 @@ fn test_struct() {
         .join("\n");
 
     assert_display_snapshot!(starlark, @r###"
-    load(
-        "@rules_rust//rust:defs.bzl",
-        "rust_library",
-    )
+    load("@rules_rust//rust:defs.bzl", "rust_library")
 
     package(default_visibility = ["//visibility:public"])
 
