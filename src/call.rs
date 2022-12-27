@@ -159,7 +159,7 @@ where
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        let len = len.unwrap_or(0);
+        let len = len.unwrap_or(2);
         Ok(FunctionCallArgs {
             delegate: self.delegate.serialize_tuple_struct(self.function, len)?,
         })
@@ -190,7 +190,7 @@ where
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        let len = len.unwrap_or(0);
+        let len = len.unwrap_or(2);
         Ok(FunctionCallArgs {
             delegate: self.delegate.serialize_struct(self.function, len)?,
         })
