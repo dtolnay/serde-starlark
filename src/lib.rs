@@ -155,7 +155,7 @@ mod error;
 mod ser;
 
 use crate::newline::WithNewline;
-use crate::ser::{WriteMap, WriteSeq, WriteStarlark, WriteStruct, WriteTupleStruct};
+use crate::ser::{WriteMap, WriteSeq, WriteStarlark, WriteStruct, WriteTuple, WriteTupleStruct};
 use serde::ser::{Impossible, Serialize};
 
 pub struct Error {
@@ -266,7 +266,7 @@ impl serde::Serializer for Serializer {
     type Ok = String;
     type Error = Error;
     type SerializeSeq = WithNewline<WriteSeq<WriteStarlark>>;
-    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = WithNewline<WriteTuple<WriteStarlark>>;
     type SerializeTupleStruct = WithNewline<WriteTupleStruct<WriteStarlark>>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = WithNewline<WriteMap<WriteStarlark>>;
@@ -402,7 +402,7 @@ impl serde::Serializer for Serializer {
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        WriteStarlark::new().serialize_tuple(len)
+        WriteStarlark::new().serialize_tuple(len).map(WithNewline)
     }
 
     fn serialize_tuple_struct(
@@ -458,7 +458,8 @@ fn newline(mut starlark: String) -> String {
 mod newline {
     use super::newline;
     use serde::ser::{
-        Serialize, SerializeMap, SerializeSeq, SerializeStruct, SerializeTupleStruct,
+        Serialize, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple,
+        SerializeTupleStruct,
     };
 
     pub struct WithNewline<S>(pub(crate) S);
@@ -466,6 +467,25 @@ mod newline {
     impl<S> SerializeSeq for WithNewline<S>
     where
         S: SerializeSeq<Ok = String>,
+    {
+        type Ok = S::Ok;
+        type Error = S::Error;
+
+        fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
+        where
+            T: Serialize + ?Sized,
+        {
+            self.0.serialize_element(value)
+        }
+
+        fn end(self) -> Result<Self::Ok, Self::Error> {
+            self.0.end().map(newline)
+        }
+    }
+
+    impl<S> SerializeTuple for WithNewline<S>
+    where
+        S: SerializeTuple<Ok = String>,
     {
         type Ok = S::Ok;
         type Error = S::Error;

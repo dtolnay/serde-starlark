@@ -14,7 +14,6 @@ pub(crate) enum ErrorKind {
     UnsupportedChar(char),
     UnsupportedBytes,
     UnsupportedUnitStruct(&'static str),
-    UnsupportedTuple,
     UnsupportedEnum(&'static str, &'static str),
     UnsupportedCall,
 }
@@ -45,7 +44,6 @@ impl Display for Error {
                     name,
                 )
             }
-            UnsupportedTuple => formatter.write_str("serialization of tuples is not supported"),
             UnsupportedEnum(name, variant) => {
                 write!(
                     formatter,
@@ -134,10 +132,6 @@ pub(crate) fn unsupported_bytes() -> Error {
 
 pub(crate) fn unsupported_unit_struct(name: &'static str) -> Error {
     ErrorKind::UnsupportedUnitStruct(name).into()
-}
-
-pub(crate) fn unsupported_tuple() -> Error {
-    ErrorKind::UnsupportedTuple.into()
 }
 
 pub(crate) fn unsupported_enum(name: &'static str, variant: &'static str) -> Error {

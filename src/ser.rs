@@ -1,7 +1,8 @@
 use crate::error;
 use crate::Error;
 use serde::ser::{
-    Impossible, Serialize, SerializeMap, SerializeSeq, SerializeStruct, SerializeTupleStruct,
+    Impossible, Serialize, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple,
+    SerializeTupleStruct,
 };
 use std::fmt::Write;
 use std::iter;
@@ -71,7 +72,7 @@ where
     type Ok = W::Ok;
     type Error = Error;
     type SerializeSeq = WriteSeq<W>;
-    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = WriteTuple<W>;
     type SerializeTupleStruct = WriteTupleStruct<W>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = WriteMap<W>;
@@ -271,8 +272,13 @@ where
         })
     }
 
-    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        Err(error::unsupported_tuple())
+    fn serialize_tuple(mut self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        let write = self.write.mutable();
+        write.output.push('(');
+        Ok(WriteTuple {
+            write: self.write,
+            len: 0,
+        })
     }
 
     fn serialize_tuple_struct(
@@ -389,6 +395,41 @@ where
             write.unindent();
         }
         write.output.push(']');
+        Ok(self.write.output())
+    }
+}
+
+pub struct WriteTuple<W> {
+    write: W,
+    len: usize,
+}
+
+impl<W> SerializeTuple for WriteTuple<W>
+where
+    W: MutableWriteStarlark,
+{
+    type Ok = W::Ok;
+    type Error = Error;
+
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        let write = self.write.mutable();
+        if self.len > 0 {
+            write.output.push_str(", ");
+        }
+        self.len += 1;
+        value.serialize(Serializer { write: &mut *write })?;
+        Ok(())
+    }
+
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+        if self.len == 1 {
+            write.output.push(',');
+        }
+        write.output.push(')');
         Ok(self.write.output())
     }
 }
