@@ -1,6 +1,9 @@
 #[macro_use]
 mod macros;
 
+use serde_derive::Serialize;
+use serde_starlark::FunctionCall;
+
 #[test]
 fn test_string_escape() {
     let strings: &[&str] = &[
@@ -20,5 +23,34 @@ fn test_string_escape() {
         "AД界😀",
         "\0\x000 \1\x010 \16\x0E0 \177\1770 \u0080",
     ]
+    "###);
+}
+
+#[test]
+fn test_flatten_struct() {
+    #[derive(Serialize)]
+    struct RustLibrary {
+        #[serde(flatten)]
+        common: RustCommon,
+        proc_macro: bool,
+    }
+
+    #[derive(Serialize)]
+    struct RustCommon {
+        name: &'static str,
+    }
+
+    let rust_library = RustLibrary {
+        common: RustCommon { name: "syn" },
+        proc_macro: false,
+    };
+
+    let function_call = FunctionCall::new("rust_library", &rust_library);
+    let starlark = serde_starlark::to_string(&function_call).unwrap();
+    assert_snapshot!(starlark, @r###"
+    rust_library(
+        name = "syn",
+        proc_macro = False,
+    )
     "###);
 }
