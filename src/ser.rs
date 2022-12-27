@@ -282,13 +282,17 @@ where
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        let newlines = len > 1;
-        let write = self.write.mutable();
-        write.output.push_str(name);
-        write.output.push('(');
+        let plus = name == "+";
+        let newlines = len > 1 && !plus;
+        if !plus {
+            let write = self.write.mutable();
+            write.output.push_str(name);
+            write.output.push('(');
+        }
         Ok(WriteTupleStruct {
             write: self.write,
             newlines,
+            plus,
             len: 0,
         })
     }
@@ -383,6 +387,7 @@ where
 pub struct WriteTupleStruct<W> {
     write: W,
     newlines: bool,
+    plus: bool,
     len: usize,
 }
 
@@ -404,7 +409,7 @@ where
             }
             write.newline();
         } else if self.len > 0 {
-            write.output.push_str(", ");
+            write.output.push_str(if self.plus { " + " } else { ", " });
         }
         self.len += 1;
         value.serialize(Serializer { write: &mut *write })?;
@@ -419,7 +424,9 @@ where
         if self.len != 0 && self.newlines {
             write.unindent();
         }
-        write.output.push(')');
+        if !self.plus {
+            write.output.push(')');
+        }
         Ok(self.write.output())
     }
 }
