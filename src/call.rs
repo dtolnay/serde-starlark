@@ -4,7 +4,7 @@ use serde::ser::{
     SerializeTupleStruct, Serializer,
 };
 
-impl<A> Serialize for FunctionCall<'static, A>
+impl<'a, A> Serialize for FunctionCall<'a, A>
 where
     A: Serialize,
 {
@@ -28,7 +28,7 @@ impl<'name, S> FunctionCallSerializer<'name, S> {
     const UNSUPPORTED: &str = "unsupported function call argument type";
 }
 
-impl<S> Serializer for FunctionCallSerializer<'static, S>
+impl<'a, S> Serializer for FunctionCallSerializer<'a, S>
 where
     S: Serializer,
 {
@@ -160,15 +160,15 @@ where
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         let len = len.unwrap_or(2);
-        Ok(FunctionCallArgs {
-            delegate: self.delegate.serialize_tuple_struct(self.function, len)?,
-        })
+        let mut delegate = self.delegate.serialize_tuple_struct("(", len)?;
+        delegate.serialize_field(self.function)?;
+        Ok(FunctionCallArgs { delegate })
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        Ok(FunctionCallArgs {
-            delegate: self.delegate.serialize_tuple_struct(self.function, len)?,
-        })
+        let mut delegate = self.delegate.serialize_tuple_struct("(", len)?;
+        delegate.serialize_field(self.function)?;
+        Ok(FunctionCallArgs { delegate })
     }
 
     fn serialize_tuple_struct(
@@ -176,7 +176,9 @@ where
         _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        self.delegate.serialize_tuple_struct(self.function, len)
+        let mut delegate = self.delegate.serialize_tuple_struct("(", len)?;
+        delegate.serialize_field(self.function)?;
+        Ok(delegate)
     }
 
     fn serialize_tuple_variant(
@@ -191,9 +193,9 @@ where
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         let len = len.unwrap_or(2);
-        Ok(FunctionCallArgs {
-            delegate: self.delegate.serialize_struct(self.function, len)?,
-        })
+        let mut delegate = self.delegate.serialize_struct("(", len)?;
+        delegate.serialize_field("", self.function)?;
+        Ok(FunctionCallArgs { delegate })
     }
 
     fn serialize_struct(
@@ -201,7 +203,9 @@ where
         _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        self.delegate.serialize_struct(self.function, len)
+        let mut delegate = self.delegate.serialize_struct("(", len)?;
+        delegate.serialize_field("", self.function)?;
+        Ok(delegate)
     }
 
     fn serialize_struct_variant(

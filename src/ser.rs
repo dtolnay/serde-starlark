@@ -282,9 +282,10 @@ where
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        let rename = name == "(";
         let plus = name == "+";
         let newlines = len > 1 && !plus;
-        if !plus {
+        if !rename && !plus {
             let write = self.write.mutable();
             write.output.push_str(name);
             write.output.push('(');
@@ -292,6 +293,7 @@ where
         Ok(WriteTupleStruct {
             write: self.write,
             newlines,
+            rename,
             plus,
             len: 0,
         })
@@ -325,13 +327,17 @@ where
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
+        let rename = name == "(";
         let newlines = len >= 1;
-        let write = self.write.mutable();
-        write.output.push_str(name);
-        write.output.push('(');
+        if !rename {
+            let write = self.write.mutable();
+            write.output.push_str(name);
+            write.output.push('(');
+        }
         Ok(WriteStruct {
             write: self.write,
             newlines,
+            rename,
             len: 0,
         })
     }
@@ -387,6 +393,7 @@ where
 pub struct WriteTupleStruct<W> {
     write: W,
     newlines: bool,
+    rename: bool,
     plus: bool,
     len: usize,
 }
@@ -403,6 +410,12 @@ where
         T: Serialize + ?Sized,
     {
         let write = self.write.mutable();
+        if self.rename {
+            value.serialize(BareStringSerializer { write: &mut *write })?;
+            write.output.push('(');
+            self.rename = false;
+            return Ok(());
+        }
         if self.newlines {
             if self.len == 0 {
                 write.indent();
@@ -477,6 +490,7 @@ where
 pub struct WriteStruct<W> {
     write: W,
     newlines: bool,
+    rename: bool,
     len: usize,
 }
 
@@ -516,7 +530,12 @@ where
     where
         T: Serialize + ?Sized,
     {
-        if key.is_empty() {
+        if self.rename {
+            let write = self.write.mutable();
+            value.serialize(BareStringSerializer { write: &mut *write })?;
+            write.output.push('(');
+            self.rename = false;
+        } else if key.is_empty() {
             self.pre_key();
             let write = self.write.mutable();
             value.serialize(Serializer { write: &mut *write })?;
@@ -524,7 +543,9 @@ where
         } else if key == "*key" {
             self.pre_key();
             let write = self.write.mutable();
-            value.serialize(BareStringSerializer { write: &mut *write })?;
+            if value.serialize(BareStringSerializer { write: &mut *write })? {
+                write.output.push_str(" = ");
+            }
         } else if key == "*value" {
             let write = self.write.mutable();
             value.serialize(Serializer { write: &mut *write })?;
@@ -555,7 +576,7 @@ struct BareStringSerializer<'a> {
 }
 
 impl<'a> serde::Serializer for BareStringSerializer<'a> {
-    type Ok = ();
+    type Ok = bool;
     type Error = Error;
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
@@ -622,11 +643,8 @@ impl<'a> serde::Serializer for BareStringSerializer<'a> {
     }
 
     fn serialize_str(self, key: &str) -> Result<Self::Ok, Self::Error> {
-        if !key.is_empty() {
-            self.write.output.push_str(key);
-            self.write.output.push_str(" = ");
-        }
-        Ok(())
+        self.write.output.push_str(key);
+        Ok(!key.is_empty())
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
