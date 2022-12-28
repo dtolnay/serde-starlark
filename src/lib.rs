@@ -45,10 +45,10 @@
 //! fn main() {
 //! #   let rust_library = RustLibrary {
 //! #       name: "syn".to_owned(),
-//! #       srcs: Glob(BTreeSet::from_iter(["**/*.rs".to_owned()])),
-//! #       crate_features: BTreeSet::from_iter(["default".to_owned(), "full".to_owned()]),
+//! #       srcs: Glob(BTreeSet::from(["**/*.rs".to_owned()])),
+//! #       crate_features: BTreeSet::from(["default".to_owned(), "full".to_owned()]),
 //! #       edition: 2018,
-//! #       deps: BTreeSet::from_iter([
+//! #       deps: BTreeSet::from([
 //! #           ":proc-macro2".to_owned(),
 //! #           ":quote".to_owned(),
 //! #           ":unicode-ident".to_owned(),

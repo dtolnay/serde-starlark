@@ -100,24 +100,24 @@ fn test_struct() {
     let build_syn = vec![
         Rule::Load(Load {
             bzl: "@rules_rust//rust:defs.bzl".to_owned(),
-            items: Set::from_iter(["rust_library".to_owned()]),
+            items: Set::from(["rust_library".to_owned()]),
         }),
         Rule::Package(Package {
-            default_visibility: Set::from_iter(["//visibility:public".to_owned()]),
+            default_visibility: Set::from(["//visibility:public".to_owned()]),
         }),
         Rule::RustLibrary(RustLibrary {
             name: "syn".to_owned(),
             srcs: Glob {
-                include: Set::from_iter(["**/*.rs".to_owned()]),
+                include: Set::from(["**/*.rs".to_owned()]),
                 exclude: Set::new(),
             },
-            crate_features: Set::from_iter(["default".to_owned(), "full".to_owned()]),
+            crate_features: Set::from(["default".to_owned(), "full".to_owned()]),
             edition: 2018,
             proc_macro: false,
             rustc_env: Map::new(),
-            deps: Map::from_iter([(
+            deps: Map::from([(
                 Condition("//conditions:default"),
-                Set::from_iter([
+                Set::from([
                     ":proc-macro2".to_owned(),
                     ":quote".to_owned(),
                     ":unicode-ident".to_owned(),
