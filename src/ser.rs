@@ -455,8 +455,18 @@ where
     {
         let write = self.write.mutable();
         if self.rename {
-            value.serialize(BareStringSerializer { write: &mut *write })?;
-            write.output.push('(');
+            match value.serialize(BareStringSerializer {
+                write: &mut *write,
+                check_empty: false,
+                check_plus: true,
+            })? {
+                BareString::Empty => unreachable!(),
+                BareString::Plus => {
+                    self.plus = true;
+                    self.newlines = false;
+                }
+                BareString::Other => write.output.push('('),
+            }
             self.rename = false;
             return Ok(());
         }
@@ -587,7 +597,11 @@ where
     {
         if self.rename {
             let write = self.write.mutable();
-            value.serialize(BareStringSerializer { write: &mut *write })?;
+            value.serialize(BareStringSerializer {
+                write: &mut *write,
+                check_empty: false,
+                check_plus: false,
+            })?;
             write.output.push('(');
             self.rename = false;
         } else if key.is_empty() {
@@ -598,8 +612,14 @@ where
         } else if key == "*key" {
             self.pre_key();
             let write = self.write.mutable();
-            if value.serialize(BareStringSerializer { write: &mut *write })? {
-                write.output.push_str(" = ");
+            match value.serialize(BareStringSerializer {
+                write: &mut *write,
+                check_empty: true,
+                check_plus: false,
+            })? {
+                BareString::Empty => {}
+                BareString::Plus => unreachable!(),
+                BareString::Other => write.output.push_str(" = "),
             }
         } else if key == "*value" {
             let write = self.write.mutable();
@@ -628,10 +648,18 @@ where
 
 struct BareStringSerializer<'a> {
     write: &'a mut WriteStarlark,
+    check_empty: bool,
+    check_plus: bool,
+}
+
+enum BareString {
+    Empty,
+    Plus,
+    Other,
 }
 
 impl<'a> serde::Serializer for BareStringSerializer<'a> {
-    type Ok = bool;
+    type Ok = BareString;
     type Error = Error;
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
@@ -698,8 +726,14 @@ impl<'a> serde::Serializer for BareStringSerializer<'a> {
     }
 
     fn serialize_str(self, key: &str) -> Result<Self::Ok, Self::Error> {
-        self.write.output.push_str(key);
-        Ok(!key.is_empty())
+        match key {
+            "" if self.check_empty => Ok(BareString::Empty),
+            "+" if self.check_plus => Ok(BareString::Plus),
+            _ => {
+                self.write.output.push_str(key);
+                Ok(BareString::Other)
+            }
+        }
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
