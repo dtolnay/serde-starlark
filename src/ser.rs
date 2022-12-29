@@ -272,11 +272,13 @@ where
         })
     }
 
-    fn serialize_tuple(mut self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+    fn serialize_tuple(mut self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        let multiline = len == crate::MULTILINE;
         let write = self.write.mutable();
         write.output.push('(');
         Ok(WriteTuple {
             write: self.write,
+            multiline,
             len: 0,
         })
     }
@@ -401,6 +403,7 @@ where
 
 pub struct WriteTuple<W> {
     write: W,
+    multiline: bool,
     len: usize,
 }
 
@@ -416,18 +419,29 @@ where
         T: Serialize + ?Sized,
     {
         let write = self.write.mutable();
-        if self.len > 0 {
+        if self.multiline {
+            if self.len == 0 {
+                write.indent();
+            }
+            write.newline();
+        } else if self.len > 0 {
             write.output.push_str(", ");
         }
         self.len += 1;
         value.serialize(Serializer { write: &mut *write })?;
+        if self.multiline {
+            write.output.push(',');
+        }
         Ok(())
     }
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.len == 1 {
+        if self.len == 1 && !self.multiline {
             write.output.push(',');
+        }
+        if self.len != 0 && self.multiline {
+            write.unindent();
         }
         write.output.push(')');
         Ok(self.write.output())
