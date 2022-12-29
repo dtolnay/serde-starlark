@@ -25,7 +25,7 @@ struct FunctionCallSerializer<'name, S> {
 }
 
 impl<'name, S> FunctionCallSerializer<'name, S> {
-    const UNSUPPORTED: &str = "unsupported function call argument type";
+    const UNSUPPORTED: &'static str = "unsupported function call argument type";
 }
 
 impl<'a, S> Serializer for FunctionCallSerializer<'a, S>
