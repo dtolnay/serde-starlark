@@ -17,6 +17,7 @@ serde = "1"
 [dev-dependencies]
 insta = "1"
 itertools = "0.10"
+semver = { version = "1", features = ["serde"] }
 serde_derive = "1"
 
 [lib]

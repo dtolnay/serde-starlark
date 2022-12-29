@@ -147,6 +147,7 @@
     clippy::enum_glob_use,
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,
+    clippy::needless_doctest_main,
     clippy::uninlined_format_args
 )]
 
@@ -168,6 +169,163 @@ where
 {
     value.serialize(Serializer)
 }
+
+/// Format a function call, array, or map with all values on one line.
+///
+/// # Defaults
+///
+/// The default newline behavior of derived Serialize impls is:
+///
+/// - function calls with named arguments: always multi-line
+/// - function calls with positional arguments: one-line if 1 argument,
+///   multi-line for more
+/// - arrays: one-line if length 1, multi-line for length &gt;1
+/// - tuples: always one-line
+/// - maps: always multi-line
+///
+/// These formatting defaults can all be overridden using serde_starlark's
+/// ONELINE and MULTILINE constants.
+///
+/// # Example
+///
+/// The derived impl produces a function call with named arguments in multi-line
+/// format.
+///
+/// ```
+/// use serde_derive::Serialize;
+///
+/// #[derive(Serialize)]
+/// #[serde(rename = "crate")]
+/// struct Crate {
+///     name: String,
+///     version: semver::Version,
+/// }
+///
+/// fn main() {
+///     let krate = Crate {
+///         name: "serde_starlark".to_owned(),
+///         version: semver::Version::new(1, 0, 0),
+///     };
+///
+///     print!("{}", serde_starlark::to_string(&krate).unwrap());
+/// }
+/// ```
+///
+/// ```bzl
+/// crate(
+///     name = "serde_starlark",
+///     version = "1.0.0",
+/// )
+/// ```
+///
+/// We can use ONELINE to serialize the call on one line.
+///
+/// ```
+/// use serde::ser::{Serialize, SerializeStruct, Serializer};
+///
+/// struct Crate {
+///     name: String,
+///     version: semver::Version,
+/// }
+///
+/// impl Serialize for Crate {
+///     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+///     where
+///         S: Serializer,
+///     {
+///         let mut call = serializer.serialize_struct("crate", serde_starlark::ONELINE)?;
+///         call.serialize_field("name", &self.name)?;
+///         call.serialize_field("version", &self.version)?;
+///         call.end()
+///     }
+/// }
+///
+/// fn main() {
+///     let krate = Crate {
+///         name: "serde_starlark".to_owned(),
+///         version: semver::Version::new(1, 0, 0),
+///     };
+///
+///     print!("{}", serde_starlark::to_string(&krate).unwrap());
+/// }
+/// ```
+///
+/// ```bzl
+/// crate(name = "serde_starlark", version = "1.0.0")
+/// ```
+pub const ONELINE: usize = usize::MIN;
+
+/// Format a function call, array, or map with all values on their own line.
+///
+/// # Defaults
+///
+/// The default newline behavior of derived Serialize impls is:
+///
+/// - function calls with named arguments: always multi-line
+/// - function calls with positional arguments: one-line if 1 argument,
+///   multi-line for more
+/// - arrays: one-line if length 1, multi-line for length &gt;1
+/// - tuples: always one-line
+/// - maps: always multi-line
+///
+/// These formatting defaults can all be overridden using serde_starlark's
+/// ONELINE and MULTILINE constants.
+///
+/// # Example
+///
+/// The derived impl produces an array of length 1 on one line.
+///
+/// ```
+/// use serde_derive::Serialize;
+///
+/// #[derive(Serialize)]
+/// #[serde(rename = "glob")]
+/// struct Glob(Vec<String>);
+///
+/// fn main() {
+///     let glob = Glob(vec!["**/*.rs".to_owned()]);
+///     print!("{}", serde_starlark::to_string(&glob).unwrap());
+/// }
+/// ```
+///
+/// ```bzl
+/// glob(["**/*.rs"])
+/// ```
+///
+/// We can choose to use the MULTILINE format for the array instead.
+///
+/// ```
+/// use serde::ser::{Serialize, SerializeSeq, Serializer};
+/// use serde_derive::Serialize;
+///
+/// #[derive(Serialize)]
+/// #[serde(rename = "glob")]
+/// struct Glob(#[serde(serialize_with = "multiline")] Vec<String>);
+///
+/// fn multiline<T, S>(array: &[T], serializer: S) -> Result<S::Ok, S::Error>
+/// where
+///     T: Serialize,
+///     S: Serializer,
+/// {
+///     let mut seq = serializer.serialize_seq(Some(serde_starlark::MULTILINE))?;
+///     for element in array {
+///         seq.serialize_element(element)?;
+///     }
+///     seq.end()
+/// }
+///
+/// fn main() {
+///     let glob = Glob(vec!["**/*.rs".to_owned()]);
+///     print!("{}", serde_starlark::to_string(&glob).unwrap());
+/// }
+/// ```
+///
+/// ```bzl
+/// glob([
+///     "**/*.rs",
+/// ])
+/// ```
+pub const MULTILINE: usize = usize::MAX;
 
 /// Serialize a map as a function call.
 ///
