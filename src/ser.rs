@@ -262,12 +262,12 @@ where
     }
 
     fn serialize_seq(mut self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        let newlines = len.map_or(true, |len| len > 1);
+        let multiline = len.map_or(true, |len| len > 1);
         let write = self.write.mutable();
         write.output.push('[');
         Ok(WriteSeq {
             write: self.write,
-            newlines,
+            multiline,
             len: 0,
         })
     }
@@ -288,7 +288,7 @@ where
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
         let rename = name == "(";
         let plus = name == "+";
-        let newlines = len > 1 && !plus;
+        let multiline = len > 1 && !plus;
         if !rename && !plus {
             let write = self.write.mutable();
             write.output.push_str(name);
@@ -296,7 +296,7 @@ where
         }
         Ok(WriteTupleStruct {
             write: self.write,
-            newlines,
+            multiline,
             rename,
             plus,
             len: 0,
@@ -314,12 +314,12 @@ where
     }
 
     fn serialize_map(mut self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        let newlines = len.map_or(true, |len| len > 0);
+        let multiline = len.map_or(true, |len| len > 0);
         let write = self.write.mutable();
         write.output.push('{');
         Ok(WriteMap {
             write: self.write,
-            newlines,
+            multiline,
             len: 0,
         })
     }
@@ -330,7 +330,7 @@ where
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
         let rename = name == "(";
-        let newlines = len >= 1;
+        let multiline = len >= 1;
         if !rename {
             let write = self.write.mutable();
             write.output.push_str(name);
@@ -338,7 +338,7 @@ where
         }
         Ok(WriteStruct {
             write: self.write,
-            newlines,
+            multiline,
             rename,
             len: 0,
         })
@@ -357,7 +357,7 @@ where
 
 pub struct WriteSeq<W> {
     write: W,
-    newlines: bool,
+    multiline: bool,
     len: usize,
 }
 
@@ -373,7 +373,7 @@ where
         T: Serialize + ?Sized,
     {
         let write = self.write.mutable();
-        if self.newlines {
+        if self.multiline {
             if self.len == 0 {
                 write.indent();
             }
@@ -383,7 +383,7 @@ where
         }
         self.len += 1;
         value.serialize(Serializer { write: &mut *write })?;
-        if self.newlines {
+        if self.multiline {
             write.output.push(',');
         }
         Ok(())
@@ -391,7 +391,7 @@ where
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.len != 0 && self.newlines {
+        if self.len != 0 && self.multiline {
             write.unindent();
         }
         write.output.push(']');
@@ -436,7 +436,7 @@ where
 
 pub struct WriteTupleStruct<W> {
     write: W,
-    newlines: bool,
+    multiline: bool,
     rename: bool,
     plus: bool,
     len: usize,
@@ -458,7 +458,7 @@ where
             value.serialize(BareStringSerializer::new(|string| {
                 if string == "+" {
                     self.plus = true;
-                    self.newlines = false;
+                    self.multiline = false;
                 } else {
                     write.output.push_str(string);
                     write.output.push('(');
@@ -467,7 +467,7 @@ where
             self.rename = false;
             return Ok(());
         }
-        if self.newlines {
+        if self.multiline {
             if self.len == 0 {
                 write.indent();
             }
@@ -477,7 +477,7 @@ where
         }
         self.len += 1;
         value.serialize(Serializer { write: &mut *write })?;
-        if self.newlines {
+        if self.multiline {
             write.output.push(',');
         }
         Ok(())
@@ -485,7 +485,7 @@ where
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.len != 0 && self.newlines {
+        if self.len != 0 && self.multiline {
             write.unindent();
         }
         if !self.plus {
@@ -497,7 +497,7 @@ where
 
 pub struct WriteMap<W> {
     write: W,
-    newlines: bool,
+    multiline: bool,
     len: usize,
 }
 
@@ -513,7 +513,7 @@ where
         T: Serialize + ?Sized,
     {
         let write = self.write.mutable();
-        if self.newlines {
+        if self.multiline {
             if self.len == 0 {
                 write.indent();
             }
@@ -533,7 +533,7 @@ where
     {
         let write = self.write.mutable();
         value.serialize(Serializer { write: &mut *write })?;
-        if self.newlines {
+        if self.multiline {
             write.output.push(',');
         }
         Ok(())
@@ -541,7 +541,7 @@ where
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.len != 0 && self.newlines {
+        if self.len != 0 && self.multiline {
             write.unindent();
         }
         write.output.push('}');
@@ -551,7 +551,7 @@ where
 
 pub struct WriteStruct<W> {
     write: W,
-    newlines: bool,
+    multiline: bool,
     rename: bool,
     len: usize,
 }
@@ -562,7 +562,7 @@ where
 {
     fn pre_key(&mut self) {
         let write = self.write.mutable();
-        if self.newlines {
+        if self.multiline {
             if self.len == 0 {
                 write.indent();
             }
@@ -575,7 +575,7 @@ where
 
     fn post_value(&mut self) {
         let write = self.write.mutable();
-        if self.newlines {
+        if self.multiline {
             write.output.push(',');
         }
     }
@@ -630,7 +630,7 @@ where
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.len != 0 && self.newlines {
+        if self.len != 0 && self.multiline {
             write.unindent();
         }
         write.output.push(')');
