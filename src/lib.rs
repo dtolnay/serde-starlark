@@ -146,12 +146,15 @@
     clippy::doc_markdown,
     clippy::enum_glob_use,
     clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
     clippy::module_name_repetitions,
     clippy::needless_doctest_main,
+    clippy::struct_excessive_bools,
     clippy::uninlined_format_args
 )]
 
 mod call;
+mod comment;
 mod error;
 mod ser;
 
@@ -409,6 +412,120 @@ pub struct FunctionCall<'name, A> {
 impl<'name, A> FunctionCall<'name, A> {
     pub fn new(function: &'name str, args: A) -> Self {
         FunctionCall { function, args }
+    }
+}
+
+/// Serialize a line comment on the end of the current line.
+///
+/// # Example
+///
+/// This example demonstrates serializing a `select({…})` in which the keys are
+/// Bazel platforms, but we want to preserve the original Cargo conditional
+/// dependency cfg expression as a comment.
+///
+/// For example we had a Cargo.toml containing this:
+///
+/// ```toml
+/// [target.'cfg(any(unix, target_os = "wasi"))'.dependencies]
+/// libc = "0.2"
+///
+/// [target.'cfg(windows)'.dependencies]
+/// windows-sys = "0.42"
+/// ```
+///
+/// And we want to get the following Starlark `select`:
+///
+/// ```bzl
+/// deps = select({
+///     "@rules_rust//rust/platform:x86_64-pc-windows-msvc": [
+///         "//third-party/rust:windows-sys",  # cfg(windows)
+///     ],
+///     "@rules_rust//rust/platform:x86_64-unknown-linux-gnu": [
+///         "//third-party/rust:libc",  # cfg(any(unix, target_os = "wasi"))
+///     ],
+///     "@rules_rust//rust/platform:wasm32-wasi": [
+///         "//third-party/rust:libc",  # cfg(any(unix, target_os = "wasi"))
+///     ],
+/// })
+/// ```
+///
+/// ```
+/// use serde::ser::{Serialize, SerializeSeq, Serializer};
+/// use serde_starlark::{FunctionCall, LineComment};
+/// use std::collections::{BTreeMap, BTreeSet};
+///
+/// #[derive(Ord, PartialOrd, Eq, PartialEq)]
+/// pub struct WithCargoCfg<T> {
+///     value: T,
+///     cfg: String,
+/// }
+///
+/// impl<T> Serialize for WithCargoCfg<T>
+/// where
+///     T: Serialize,
+/// {
+///     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+///     where
+///         S: Serializer,
+///     {
+///         LineComment::new(&self.value, &self.cfg).serialize(serializer)
+///     }
+/// }
+///
+/// // Serialize an array with each element on its own line, even if there
+/// // is just a single element which serde_starlark would ordinarily place
+/// // on the same line as the array brackets.
+/// struct MultilineArray<A>(A);
+///
+/// impl<A, T> Serialize for MultilineArray<A>
+/// where
+///     for<'a> &'a A: IntoIterator<Item = &'a T>,
+///     T: Serialize,
+/// {
+///     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+///     where
+///         S: Serializer,
+///     {
+///         let mut array = serializer.serialize_seq(Some(serde_starlark::MULTILINE))?;
+///         for element in &self.0 {
+///             array.serialize_element(element)?;
+///         }
+///         array.end()
+///     }
+/// }
+///
+/// fn main() {
+///     let deps = BTreeMap::from([
+///         (
+///             "@rules_rust//rust/platform:x86_64-pc-windows-msvc".to_owned(),
+///             MultilineArray(BTreeSet::from([WithCargoCfg {
+///                 value: "//third-party/rust:windows-sys",
+///                 cfg: "cfg(windows)".to_owned(),
+///             }])),
+///         ),
+///         (
+///             "@rules_rust//rust/platform:x86_64-unknown-linux-gnu".to_owned(),
+///             MultilineArray(BTreeSet::from([WithCargoCfg {
+///                 value: "//third-party/rust:libc",
+///                 cfg: "cfg(any(unix, target_os = \"wasi\"))".to_owned(),
+///             }])),
+///         ),
+///     ]);
+///
+///     let select = FunctionCall::new("select", (deps,));
+///     print!("{}", serde_starlark::to_string(&select).unwrap());
+/// }
+/// ```
+pub struct LineComment<'comment, T> {
+    value: T,
+    comment: &'comment str,
+}
+
+impl<'comment, T> LineComment<'comment, T> {
+    pub fn new(value: T, comment: &'comment str) -> Self {
+        assert!(!comment.starts_with('#'));
+        assert!(!comment.contains('\n'));
+        LineComment { value, comment }
     }
 }
 

@@ -10,6 +10,7 @@ use std::iter;
 pub struct WriteStarlark {
     output: String,
     indent: usize,
+    line_comment: Option<String>,
 }
 
 impl WriteStarlark {
@@ -18,11 +19,16 @@ impl WriteStarlark {
             write: WriteStarlark {
                 output: String::new(),
                 indent: 0,
+                line_comment: None,
             },
         }
     }
 
     fn newline(&mut self) {
+        if let Some(line_comment) = self.line_comment.take() {
+            self.output.push_str("  # ");
+            self.output.push_str(&line_comment);
+        }
         let indent = iter::repeat(' ').take(self.indent);
         self.output.extend(iter::once('\n').chain(indent));
     }
@@ -290,8 +296,9 @@ where
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
         let rename = name == "(";
         let plus = name == "+";
+        let line_comment = name == "#";
         let multiline = len > 1 && !plus;
-        if !rename && !plus {
+        if !rename && !plus && !line_comment {
             let write = self.write.mutable();
             write.output.push_str(name);
             write.output.push('(');
@@ -301,6 +308,7 @@ where
             multiline,
             rename,
             plus,
+            line_comment,
             len: 0,
         })
     }
@@ -453,6 +461,7 @@ pub struct WriteTupleStruct<W> {
     multiline: bool,
     rename: bool,
     plus: bool,
+    line_comment: bool,
     len: usize,
 }
 
@@ -481,6 +490,18 @@ where
             self.rename = false;
             return Ok(());
         }
+        if self.line_comment {
+            return if self.len == 0 {
+                self.len += 1;
+                value.serialize(BareStringSerializer::new(|string| {
+                    write.line_comment = Some(string.to_owned());
+                }))
+            } else {
+                assert_eq!(self.len, 1);
+                self.len += 1;
+                value.serialize(Serializer { write: &mut *write })
+            };
+        }
         if self.multiline {
             if self.len == 0 {
                 write.indent();
@@ -499,11 +520,13 @@ where
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if self.len != 0 && self.multiline {
-            write.unindent();
-        }
-        if !self.plus {
-            write.output.push(')');
+        if !self.line_comment {
+            if self.len != 0 && self.multiline {
+                write.unindent();
+            }
+            if !self.plus {
+                write.output.push(')');
+            }
         }
         Ok(self.write.output())
     }
