@@ -217,6 +217,10 @@ where
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         Err(Error::custom(Self::UNSUPPORTED))
     }
+
+    fn is_human_readable(&self) -> bool {
+        self.delegate.is_human_readable()
+    }
 }
 
 struct FunctionCallArgs<S> {
