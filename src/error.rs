@@ -14,7 +14,6 @@ pub(crate) enum ErrorKind {
     UnsupportedChar(char),
     UnsupportedBytes,
     UnsupportedUnit,
-    UnsupportedUnitStruct(&'static str),
     UnsupportedEnum(&'static str, &'static str),
     UnsupportedCall,
 }
@@ -41,13 +40,6 @@ impl Display for Error {
             UnsupportedUnit => formatter.write_str(
                 "serialization of () is not supported; use serialize_none to produce `None`",
             ),
-            UnsupportedUnitStruct(name) => {
-                write!(
-                    formatter,
-                    "serialization of unit struct is not supported: {}",
-                    name,
-                )
-            }
             UnsupportedEnum(name, variant) => {
                 write!(
                     formatter,
@@ -136,10 +128,6 @@ pub(crate) fn unsupported_bytes() -> Error {
 
 pub(crate) fn unsupported_unit() -> Error {
     ErrorKind::UnsupportedUnit.into()
-}
-
-pub(crate) fn unsupported_unit_struct(name: &'static str) -> Error {
-    ErrorKind::UnsupportedUnitStruct(name).into()
 }
 
 pub(crate) fn unsupported_enum(name: &'static str, variant: &'static str) -> Error {

@@ -228,8 +228,10 @@ where
         Err(error::unsupported_unit())
     }
 
-    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        Err(error::unsupported_unit_struct(name))
+    fn serialize_unit_struct(mut self, name: &'static str) -> Result<Self::Ok, Self::Error> {
+        let write = self.write.mutable();
+        write.output.push_str(name);
+        Ok(self.write.output())
     }
 
     fn serialize_unit_variant(
