@@ -54,7 +54,8 @@ impl MutableWriteStarlark for WriteStarlark {
     fn mutable(&mut self) -> &mut WriteStarlark {
         self
     }
-    fn output(self) -> Self::Ok {
+    fn output(mut self) -> Self::Ok {
+        self.newline();
         self.output
     }
 }
