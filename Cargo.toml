@@ -15,7 +15,7 @@ rust-version = "1.56"
 serde = "1"
 
 [dev-dependencies]
-insta = "1"
+expect-test = "1"
 itertools = "0.10"
 semver = { version = "1", features = ["serde"] }
 serde_derive = "1"

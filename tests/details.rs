@@ -1,6 +1,4 @@
-#[macro_use]
-mod macros;
-
+use expect_test::expect;
 use serde_derive::Serialize;
 use serde_starlark::FunctionCall;
 
@@ -15,15 +13,16 @@ fn test_string_escape() {
     ];
 
     let starlark = serde_starlark::to_string(strings).unwrap();
-    assert_snapshot!(starlark, @r###"
-    [
-        "\a \b \f \n \r \t \v \\",
-        "Have you read \"To Kill a Mockingbird?\"",
-        "Yes, it's a classic.",
-        "AД界😀",
-        "\0\x000 \1\x010 \16\x0E0 \177\1770 \u0080",
-    ]
-    "###);
+    let expected = expect![[r#"
+        [
+            "\a \b \f \n \r \t \v \\",
+            "Have you read \"To Kill a Mockingbird?\"",
+            "Yes, it's a classic.",
+            "AД界😀",
+            "\0\x000 \1\x010 \16\x0E0 \177\1770 \u0080",
+        ]
+    "#]];
+    expected.assert_eq(&starlark);
 }
 
 #[test]
@@ -47,22 +46,24 @@ fn test_flatten_struct() {
 
     let function_call = FunctionCall::new("rust_library", &rust_library);
     let starlark = serde_starlark::to_string(&function_call).unwrap();
-    assert_snapshot!(starlark, @r###"
-    rust_library(
-        name = "syn",
-        proc_macro = False,
-    )
-    "###);
+    let expected = expect![[r#"
+        rust_library(
+            name = "syn",
+            proc_macro = False,
+        )
+    "#]];
+    expected.assert_eq(&starlark);
 }
 
 #[test]
 fn test_function_call_positional() {
     let function_call = FunctionCall::new("load", ["@rules_rust//rust:defs.bzl", "rust_library"]);
     let starlark = serde_starlark::to_string(&function_call).unwrap();
-    assert_snapshot!(starlark, @r###"
-    load(
-        "@rules_rust//rust:defs.bzl",
-        "rust_library",
-    )
-    "###);
+    let expected = expect![[r#"
+        load(
+            "@rules_rust//rust:defs.bzl",
+            "rust_library",
+        )
+    "#]];
+    expected.assert_eq(&starlark);
 }
