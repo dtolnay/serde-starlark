@@ -1,6 +1,4 @@
-#[macro_use]
-mod macros;
-
+use expect_test::expect;
 use itertools::Itertools;
 use serde::ser::{Serialize, SerializeStruct, SerializeTupleStruct, Serializer};
 use serde_derive::Serialize;
@@ -132,28 +130,30 @@ fn test_struct() {
         .map(Result::unwrap)
         .join("\n");
 
-    assert_snapshot!(starlark, @r###"
-    load("@rules_rust//rust:defs.bzl", "rust_library")
+    let expected = expect![[r#"
+        load("@rules_rust//rust:defs.bzl", "rust_library")
 
-    package(default_visibility = ["//visibility:public"])
+        package(default_visibility = ["//visibility:public"])
 
-    rust_library(
-        name = "syn",
-        srcs = glob(["**/*.rs"]),
-        crate_features = [
-            "default",
-            "full",
-        ],
-        edition = 2018,
-        proc_macro = False,
-        rustc_env = {},
-        deps = select({
-            "//conditions:default": [
-                ":proc-macro2",
-                ":quote",
-                ":unicode-ident",
+        rust_library(
+            name = "syn",
+            srcs = glob(["**/*.rs"]),
+            crate_features = [
+                "default",
+                "full",
             ],
-        }),
-    )
-    "###);
+            edition = 2018,
+            proc_macro = False,
+            rustc_env = {},
+            deps = select({
+                "//conditions:default": [
+                    ":proc-macro2",
+                    ":quote",
+                    ":unicode-ident",
+                ],
+            }),
+        )
+    "#]];
+
+    expected.assert_eq(&starlark);
 }
