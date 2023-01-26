@@ -153,6 +153,7 @@
     clippy::uninlined_format_args
 )]
 
+mod assignment;
 mod call;
 mod comment;
 mod error;
@@ -328,6 +329,61 @@ pub const ONELINE: usize = usize::MIN;
 /// ])
 /// ```
 pub const MULTILINE: usize = usize::MAX;
+
+/// Serialize a value as an assigment to an identifier.
+///
+/// # Example
+///
+/// Assigning a simple value to an identifier.
+///
+/// ```
+/// # use std::collections::BTreeMap;
+/// #
+/// use serde_starlark::Assignment;
+///
+/// let version = Assignment::new("VERSION", "1.0.0");
+/// print!("{}", serde_starlark::to_string(&version).unwrap());
+///
+/// let metadata = Assignment::new(
+///     "METADATA",
+///     BTreeMap::from([("name", "project"), ("version", "1.0.0")]),
+/// );
+/// print!("{}", serde_starlark::to_string(&metadata).unwrap());
+/// #
+/// # assert_eq!(
+/// #   serde_starlark::to_string(&version).unwrap(),
+/// #   "VERSION = \"1.0.0\"\n",
+/// # );
+/// # assert_eq!(
+/// #   serde_starlark::to_string(&metadata).unwrap(),
+/// #   concat!(
+/// #       "METADATA = {\n",
+/// #       "    \"name\": \"project\",\n",
+/// #       "    \"version\": \"1.0.0\",\n",
+/// #       "}\n",
+/// #   ),
+/// # );
+/// ```
+///
+/// Produces:
+///
+/// ```bzl
+/// VERSION = "1.0.0"
+/// METADATA = {
+///     "name": "project",
+///     "version": "1.0.0",
+/// }
+/// ```
+pub struct Assignment<'identifier, T> {
+    identifier: &'identifier str,
+    value: T,
+}
+
+impl<'identifier, T> Assignment<'identifier, T> {
+    pub fn new(identifier: &'identifier str, value: T) -> Self {
+        Assignment { identifier, value }
+    }
+}
 
 /// Serialize a map as a function call.
 ///
