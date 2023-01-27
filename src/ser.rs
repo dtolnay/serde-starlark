@@ -297,11 +297,12 @@ where
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        let assignment = name == "=";
         let rename = name == "(";
         let plus = name == "+";
         let line_comment = name == "#";
         let multiline = len > 1 && !plus;
-        if !rename && !plus && !line_comment {
+        if !assignment && !rename && !plus && !line_comment {
             let write = self.write.mutable();
             write.output.push_str(name);
             write.output.push('(');
@@ -309,6 +310,7 @@ where
         Ok(WriteTupleStruct {
             write: self.write,
             multiline,
+            assignment,
             rename,
             plus,
             line_comment,
@@ -462,6 +464,7 @@ where
 pub struct WriteTupleStruct<W> {
     write: W,
     multiline: bool,
+    assignment: bool,
     rename: bool,
     plus: bool,
     line_comment: bool,
@@ -480,6 +483,19 @@ where
         T: Serialize + ?Sized,
     {
         let write = self.write.mutable();
+        if self.assignment {
+            return if self.len == 0 {
+                self.len += 1;
+                value.serialize(BareStringSerializer::new(|string| {
+                    write.output.push_str(string);
+                    write.output.push_str(" = ");
+                }))
+            } else {
+                assert_eq!(self.len, 1);
+                self.len += 1;
+                value.serialize(Serializer { write: &mut *write })
+            };
+        }
         if self.rename {
             value.serialize(BareStringSerializer::new(|string| {
                 if string == "+" {
@@ -523,7 +539,7 @@ where
 
     fn end(mut self) -> Result<Self::Ok, Self::Error> {
         let write = self.write.mutable();
-        if !self.line_comment {
+        if !self.assignment && !self.line_comment {
             if self.len != 0 && self.multiline {
                 write.unindent();
             }
