@@ -162,6 +162,10 @@ mod ser;
 use crate::ser::{WriteMap, WriteSeq, WriteStarlark, WriteStruct, WriteTuple, WriteTupleStruct};
 use serde::ser::{Impossible, Serialize};
 
+/// For "deserialization", consider using <https://github.com/facebookexperimental/starlark-rust>.
+#[cfg(doc)]
+pub mod de {}
+
 pub struct Error {
     kind: crate::error::ErrorKind,
 }
