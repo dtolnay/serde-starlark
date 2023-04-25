@@ -3,6 +3,7 @@ use serde_derive::Serialize;
 use serde_starlark::FunctionCall;
 
 #[test]
+#[allow(clippy::octal_escapes)]
 fn test_string_escape() {
     let strings: &[&str] = &[
         "\x07 \x08 \x0C \n \r \t \x0B \\",
