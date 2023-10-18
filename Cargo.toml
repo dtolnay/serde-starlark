@@ -1,6 +1,6 @@
 [package]
 name = "serde_starlark"
-version = "0.1.14" # remember to update html_root_url
+version = "0.1.14"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 categories = ["encoding"]
 description = "Serde serializer for generating Starlark build targets"
