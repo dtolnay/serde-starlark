@@ -334,7 +334,7 @@ pub const ONELINE: usize = usize::MIN;
 /// ```
 pub const MULTILINE: usize = usize::MAX;
 
-/// Serialize a value as an assigment to an identifier.
+/// Serialize a value as an assignment to an identifier.
 ///
 /// # Example
 ///
