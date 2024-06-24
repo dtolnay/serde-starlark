@@ -9,7 +9,7 @@ edition = "2021"
 keywords = ["serde", "bazel", "buck", "starlark", "serialization"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/dtolnay/serde-starlark"
-rust-version = "1.60"
+rust-version = "1.61"
 
 [dependencies]
 serde = "1.0.194"
