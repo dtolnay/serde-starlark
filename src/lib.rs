@@ -148,6 +148,7 @@
     clippy::missing_errors_doc,
     clippy::missing_panics_doc,
     clippy::module_name_repetitions,
+    clippy::needless_lifetimes,
     clippy::needless_doctest_main,
     clippy::struct_excessive_bools,
     clippy::uninlined_format_args
