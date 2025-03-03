@@ -144,6 +144,7 @@
 #![doc(html_root_url = "https://docs.rs/serde_starlark/0.1.16")]
 #![allow(
     clippy::doc_markdown,
+    clippy::elidable_lifetime_names,
     clippy::enum_glob_use,
     clippy::missing_errors_doc,
     clippy::missing_panics_doc,
