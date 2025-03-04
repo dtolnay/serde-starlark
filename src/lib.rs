@@ -141,7 +141,7 @@
 //! present. Consider using `serde(skip_serializing_if = "Option::is_none")` to
 //! omit fields with value `None` from the serialized output.
 
-#![doc(html_root_url = "https://docs.rs/serde_starlark/0.1.16")]
+#![doc(html_root_url = "https://docs.rs/serde_starlark/0.1.17")]
 #![allow(
     clippy::doc_markdown,
     clippy::elidable_lifetime_names,
