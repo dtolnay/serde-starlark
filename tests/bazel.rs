@@ -95,7 +95,7 @@ where
 
 #[test]
 fn test_struct() {
-    let build_syn = vec![
+    let build_syn = [
         Rule::Load(Load {
             bzl: "@rules_rust//rust:defs.bzl".to_owned(),
             items: Set::from(["rust_library".to_owned()]),
