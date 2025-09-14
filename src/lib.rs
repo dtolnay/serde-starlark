@@ -155,6 +155,8 @@
     clippy::uninlined_format_args
 )]
 
+extern crate serde_core as serde;
+
 mod assignment;
 mod call;
 mod comment;

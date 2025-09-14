@@ -12,13 +12,17 @@ repository = "https://github.com/dtolnay/serde-starlark"
 rust-version = "1.61"
 
 [dependencies]
-serde = "1.0.194"
+serde_core = "1.0.220"
+
+[target.'cfg(any())'.dependencies]
+serde = "1.0.220"
 
 [dev-dependencies]
 expect-test = "1.4"
 itertools = "0.14"
 semver = { version = "1.0.17", features = ["serde"] }
-serde_derive = "1.0.194"
+serde = "1.0.220"
+serde_derive = "1.0.220"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
