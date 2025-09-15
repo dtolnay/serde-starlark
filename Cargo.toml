@@ -1,6 +1,6 @@
 [package]
 name = "serde_starlark"
-version = "0.1.18"
+version = "0.1.19"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 categories = ["encoding", "no-std"]
 description = "Serde serializer for generating Starlark build targets"
