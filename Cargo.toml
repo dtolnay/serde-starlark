@@ -2,7 +2,7 @@
 name = "serde_starlark"
 version = "0.1.18"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
-categories = ["encoding"]
+categories = ["encoding", "no-std"]
 description = "Serde serializer for generating Starlark build targets"
 documentation = "https://docs.rs/serde_starlark"
 edition = "2021"
@@ -12,10 +12,10 @@ repository = "https://github.com/dtolnay/serde-starlark"
 rust-version = "1.61"
 
 [dependencies]
-serde_core = "1.0.220"
+serde_core = { version = "1.0.220", default-features = false, features = ["alloc"] }
 
 [target.'cfg(any())'.dependencies]
-serde = "1.0.220"
+serde = { version = "1.0.220", default-features = false }
 
 [dev-dependencies]
 expect-test = "1.4"

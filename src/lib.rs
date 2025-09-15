@@ -142,6 +142,7 @@
 //! omit fields with value `None` from the serialized output.
 
 #![doc(html_root_url = "https://docs.rs/serde_starlark/0.1.18")]
+#![no_std]
 #![allow(
     clippy::doc_markdown,
     clippy::elidable_lifetime_names,
@@ -155,6 +156,7 @@
     clippy::uninlined_format_args
 )]
 
+extern crate alloc;
 extern crate serde_core as serde;
 
 mod assignment;
@@ -164,6 +166,7 @@ mod error;
 mod ser;
 
 use crate::ser::{WriteMap, WriteSeq, WriteStarlark, WriteStruct, WriteTuple, WriteTupleStruct};
+use alloc::string::String;
 use serde::ser::{Impossible, Serialize};
 
 /// For "deserialization", consider using <https://github.com/facebookexperimental/starlark-rust>.

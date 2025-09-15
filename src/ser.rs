@@ -1,11 +1,13 @@
 use crate::error;
 use crate::Error;
+use alloc::borrow::ToOwned as _;
+use alloc::string::String;
+use core::fmt::Write;
+use core::iter;
 use serde::ser::{
     Impossible, Serialize, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple,
     SerializeTupleStruct,
 };
-use std::fmt::Write;
-use std::iter;
 
 pub struct WriteStarlark {
     output: String,
