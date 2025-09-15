@@ -1,5 +1,6 @@
 use crate::Error;
-use std::fmt::{self, Debug, Display};
+use alloc::string::{String, ToString as _};
+use core::fmt::{self, Debug, Display};
 
 #[derive(Debug)]
 pub(crate) enum ErrorKind {
