@@ -19,7 +19,7 @@ serde = { version = "1.0.220", default-features = false }
 
 [dev-dependencies]
 expect-test = "1.4"
-itertools = "0.14"
+itertools = "0.15"
 semver = { version = "1.0.17", features = ["serde"] }
 serde = "1.0.220"
 serde_derive = "1.0.220"
